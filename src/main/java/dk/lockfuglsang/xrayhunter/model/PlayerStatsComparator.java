@@ -18,7 +18,27 @@ public class PlayerStatsComparator implements Comparator<PlayerStats> {
 			Material.EMERALD_ORE,
 			Material.GOLD_ORE,
 			Material.IRON_ORE,
+			Material.STONE,
+			Material.DEEPSLATE_DIAMOND_ORE,
+			Material.DEEPSLATE_EMERALD_ORE,
+			Material.DEEPSLATE_GOLD_ORE,
+			Material.DEEPSLATE_IRON_ORE
+			);
+
+	public static final List<Material> DISPLAY_MATS = Arrays.asList(
+			Material.DIAMOND_ORE,
+			Material.SPAWNER,
+			Material.EMERALD_ORE,
+			Material.GOLD_ORE,
+			Material.IRON_ORE,
 			Material.STONE
+			);
+
+	public static final List<Material> DEEP_MAT = Arrays.asList(
+			Material.DEEPSLATE_DIAMOND_ORE,
+			Material.DEEPSLATE_EMERALD_ORE,
+			Material.DEEPSLATE_GOLD_ORE,
+			Material.DEEPSLATE_IRON_ORE
 			);
 
 	public static final Map<Material, String> MAT_COLORS = new HashMap<>();

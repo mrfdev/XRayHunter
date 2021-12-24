@@ -54,9 +54,11 @@ class LookupCommand extends AbstractCommand {
 	}
 
 	private void updateMap(Map<Material, Integer> blockCount, Material blockId) {
+		if(PlayerStatsComparator.DEEP_MAT.contains(blockId)) { blockId = Material.getMaterial(blockId.name().replaceFirst("DEEPSLATE_", "")); }
 		if (!blockCount.containsKey(blockId)) {
 			blockCount.put(blockId, 0);
 		}
+
 		blockCount.put(blockId, blockCount.get(blockId) + 1);
 	}
 
@@ -148,14 +150,14 @@ class LookupCommand extends AbstractCommand {
 
 				final StringBuilder sb = new StringBuilder();
 				sb.append("Listing");
-				for (final Material mat : PlayerStatsComparator.MATS) {
+				for (final Material mat : PlayerStatsComparator.DISPLAY_MATS) {
 					sb.append(PlayerStatsComparator.getColor(mat) + "§l " + mat.name().substring(0, 3));
 				}
 				sb.append("\n");
 				int place = 1;
 				for (final PlayerStats stat : top10.subList(0, Math.min(top10.size(), 10))) {
 					sb.append(MessageFormat.format("§7#{0}", place));
-					for (final Material mat : PlayerStatsComparator.MATS) {
+					for (final Material mat : PlayerStatsComparator.DISPLAY_MATS) {
 						sb.append(PlayerStatsComparator.getColor(mat) +
 								MessageFormat.format(" §l{0,number,##}§7({1,number,##}%)", stat.getCount(mat), 100 * stat.getRatio(mat)));
 					}
