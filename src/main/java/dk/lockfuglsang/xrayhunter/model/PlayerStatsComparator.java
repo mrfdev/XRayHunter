@@ -22,7 +22,8 @@ public class PlayerStatsComparator implements Comparator<PlayerStats> {
 			Material.DEEPSLATE_DIAMOND_ORE,
 			Material.DEEPSLATE_EMERALD_ORE,
 			Material.DEEPSLATE_GOLD_ORE,
-			Material.DEEPSLATE_IRON_ORE
+			Material.DEEPSLATE_IRON_ORE,
+			Material.DEEPSLATE
 			);
 
 	public static final List<Material> DISPLAY_MATS = Arrays.asList(
@@ -38,7 +39,8 @@ public class PlayerStatsComparator implements Comparator<PlayerStats> {
 			Material.DEEPSLATE_DIAMOND_ORE,
 			Material.DEEPSLATE_EMERALD_ORE,
 			Material.DEEPSLATE_GOLD_ORE,
-			Material.DEEPSLATE_IRON_ORE
+			Material.DEEPSLATE_IRON_ORE,
+			Material.DEEPSLATE
 			);
 
 	public static final Map<Material, String> MAT_COLORS = new HashMap<>();

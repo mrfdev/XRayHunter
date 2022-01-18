@@ -54,7 +54,9 @@ class LookupCommand extends AbstractCommand {
 	}
 
 	private void updateMap(Map<Material, Integer> blockCount, Material blockId) {
-		if(PlayerStatsComparator.DEEP_MAT.contains(blockId)) { blockId = Material.getMaterial(blockId.name().replaceFirst("DEEPSLATE_", "")); }
+		if(PlayerStatsComparator.DEEP_MAT.contains(blockId) && blockId.equals(Material.DEEPSLATE)) { blockId = Material.STONE; }
+		else if(PlayerStatsComparator.DEEP_MAT.contains(blockId)) { blockId = Material.getMaterial(blockId.name().replaceFirst("DEEPSLATE_", "")); }
+
 		if (!blockCount.containsKey(blockId)) {
 			blockCount.put(blockId, 0);
 		}
