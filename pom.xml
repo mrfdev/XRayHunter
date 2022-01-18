@@ -2,7 +2,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>dk.lockfuglsang</groupId>
 	<artifactId>XRayHunter</artifactId>
-	<version>1.2.3</version>
+	<version>1.2.4</version>
 	<name>CoreProtect XRay Hunter</name>
 
 	<properties>
