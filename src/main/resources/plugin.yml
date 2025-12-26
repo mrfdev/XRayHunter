@@ -4,15 +4,15 @@ version: ${project.version}
 description: XRay Hunter for CoreProtect v${project.version}
 author: R4zorax
 prefix: XRayHunter
-softdepend: [CoreProtect]
+softdepend: [ CoreProtect ]
 api-version: 1.16
 commands:
   xrayhunt:
     description: Hunt XRayers
-    aliases: [xhunt, xr]
+    aliases: [ xhunt, xr ]
     usage: /<command> - Access XRay Hunter
 
-permissions:    
+permissions:
   xhunt.*:
     children:
       xhunt.use:

@@ -4,11 +4,10 @@ import dk.lockfuglsang.minecraft.command.AbstractCommand;
 import dk.lockfuglsang.util.LocationUtil;
 import dk.lockfuglsang.xrayhunter.model.HuntSession;
 import dk.lockfuglsang.xrayhunter.model.OreVein;
+import java.util.Map;
 import org.bukkit.Location;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
-
-import java.util.Map;
 
 import static dk.lockfuglsang.minecraft.po.I18nUtil.tr;
 
@@ -28,7 +27,7 @@ public class TeleportCommand extends AbstractCommand {
             if (index < 1 || session.getVeins() == null || session.getVeins().size() < index) {
                 sender.sendMessage(tr("Invalid index supplied, try running lookup again."));
             } else {
-                safeTeleport((Player) sender, session.getVeins().get(index-1));
+                safeTeleport((Player) sender, session.getVeins().get(index - 1));
             }
             return true;
         }
