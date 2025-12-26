@@ -6,6 +6,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import org.bukkit.Material;
+import org.jspecify.annotations.NonNull;
 
 /**
  * Comparator the maps of block-counts for two users
@@ -27,7 +28,7 @@ public class PlayerStatsComparatorNether implements Comparator<PlayerStats> {
         MAT_COLORS.put(Material.NETHERRACK, "§7");
     }
 
-    public static String getColor(Material mat) {
+    public static @NonNull String getColor(Material mat) {
         final String color = MAT_COLORS.get(mat);
         return color != null ? color : "";
     }

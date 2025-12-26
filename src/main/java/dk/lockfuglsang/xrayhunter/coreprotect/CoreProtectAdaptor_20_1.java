@@ -17,10 +17,9 @@ public class CoreProtectAdaptor_20_1 extends AbstractCoreProtectAdaptor implemen
     @Override
     public boolean isAvailable() {
         final Plugin plugin = Bukkit.getPluginManager().getPlugin("CoreProtect");
-
-        return plugin != null && plugin.getDescription() != null &&
-                isVersionLaterThan(plugin.getDescription().getVersion(), "21.1") &&
-                getLookupClass() != null && getLookupMethod(getLookupClass()) != null;
+        if (plugin == null) return false;
+        plugin.getPluginMeta().getDescription();
+        return isVersionLaterThan(plugin.getPluginMeta().getVersion()) && getLookupClass() != null && getLookupMethod(getLookupClass()) != null;
     }
 
     @SuppressWarnings("unchecked")

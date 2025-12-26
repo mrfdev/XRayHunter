@@ -3,6 +3,7 @@ package dk.lockfuglsang.xrayhunter.model;
 import java.util.HashMap;
 import java.util.Map;
 import org.bukkit.Material;
+import org.jspecify.annotations.NonNull;
 
 /**
  * Data object for holding the player stats.
@@ -12,7 +13,7 @@ public class PlayerStats {
     private final float total;
     private final Map<Material, Integer> blockCount = new HashMap<>();
 
-    public PlayerStats(String player, Map<Material, Integer> map) {
+    public PlayerStats(String player, @NonNull Map<Material, Integer> map) {
         this.player = player;
         int sum = 0;
         for (Map.Entry<Material, Integer> entry : map.entrySet()) {

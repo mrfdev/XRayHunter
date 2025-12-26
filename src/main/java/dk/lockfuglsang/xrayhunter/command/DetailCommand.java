@@ -15,6 +15,7 @@ import net.coreprotect.CoreProtectAPI;
 import org.bukkit.World;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
+import org.jspecify.annotations.NonNull;
 
 import static dk.lockfuglsang.minecraft.po.I18nUtil.tr;
 
@@ -27,7 +28,7 @@ public class DetailCommand extends AbstractCommand {
     }
 
     @Override
-    public boolean execute(CommandSender sender, String alias, Map<String, Object> data, String... args) {
+    public boolean execute(CommandSender sender, String alias, Map<String, Object> data, String @NonNull ... args) {
         final HuntSession session = HuntSession.getSession(sender);
         if (args.length >= 1 && args[0].matches("\\d+")) {
             final int index = Integer.parseInt(args[0], 10);
@@ -58,7 +59,7 @@ public class DetailCommand extends AbstractCommand {
         return false;
     }
 
-    private void showDetails(CommandSender sender, PlayerStats playerStats, HuntSession session, int page) {
+    private void showDetails(CommandSender sender, @NonNull PlayerStats playerStats, @NonNull HuntSession session, int page) {
         final List<CoreProtectAPI.ParseResult> data = session.getUserData(playerStats.getPlayer());
         if (data.isEmpty()) {
             sender.sendMessage(tr("No data found for player {0}, try running lookup again.", playerStats.getPlayer()));
@@ -69,37 +70,22 @@ public class DetailCommand extends AbstractCommand {
         showVeins(sender, playerStats, veins, page);
     }
 
-    private void showVeins(CommandSender sender, PlayerStats playerStats, List<OreVein> veins, int page) {
+    private void showVeins(CommandSender sender, @NonNull PlayerStats playerStats, @NonNull List<OreVein> veins, int page) {
         // TODO: 19/04/2015 - R4zorax: Pagination
         final Player player = (Player) sender;
         final StringBuilder sb = new StringBuilder();
         final int maxPage = (veins.size() - 1) / 10 + 1;
-        final int p = page < 1 ? 1 : page > maxPage ? maxPage : page;
-        sb.append(tr("Showing what {0} has found §9({1}/{2})", playerStats.getPlayer(), p, maxPage) + "\n");
+        final int p = page < 1 ? 1 : Math.min(page, maxPage);
+        sb.append(tr("Showing what {0} has found §9({1}/{2})", playerStats.getPlayer(), p, maxPage)).append("\n");
         long tlast = System.currentTimeMillis();
         int index = 1 + (p - 1) * 10;
         for (final OreVein vein : veins.subList((p - 1) * 10, Math.min(p * 10, veins.size()))) {
             if (player.getWorld().getEnvironment() == World.Environment.NETHER) {
-                sb.append(tr("§7#{5,number} {0}: §9found §e{1} {2}{3}§9 ores at {4}",
-                        TimeUtil.millisAsString(tlast - vein.getTime()),
-                        vein.getSize(),
-                        PlayerStatsComparatorNether.getColor(vein.getType()),
-                        vein.getType().name().substring(0, 3),
-                        LocationUtil.asShortString(vein.getLocation()),
-                        index++
-                ) + "\n");
-                tlast = vein.getTime();
+                sb.append(tr("§7#{5,number} {0}: §9found §e{1} {2}{3}§9 ores at {4}", TimeUtil.millisAsString(tlast - vein.getTime()), vein.getSize(), PlayerStatsComparatorNether.getColor(vein.getType()), vein.getType().name().substring(0, 3), LocationUtil.asShortString(vein.getLocation()), index++)).append("\n");
             } else {
-                sb.append(tr("§7#{5,number} {0}: §9found §e{1} {2}{3}§9 ores at {4}",
-                        TimeUtil.millisAsString(tlast - vein.getTime()),
-                        vein.getSize(),
-                        PlayerStatsComparator.getColor(vein.getType()),
-                        vein.getType().name().substring(0, 3),
-                        LocationUtil.asShortString(vein.getLocation()),
-                        index++
-                ) + "\n");
-                tlast = vein.getTime();
+                sb.append(tr("§7#{5,number} {0}: §9found §e{1} {2}{3}§9 ores at {4}", TimeUtil.millisAsString(tlast - vein.getTime()), vein.getSize(), PlayerStatsComparator.getColor(vein.getType()), vein.getType().name().substring(0, 3), LocationUtil.asShortString(vein.getLocation()), index++)).append("\n");
             }
+            tlast = vein.getTime();
         }
         sender.sendMessage(sb.toString().split("\n"));
     }

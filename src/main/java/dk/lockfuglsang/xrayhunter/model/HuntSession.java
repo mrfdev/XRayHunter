@@ -6,6 +6,7 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import net.coreprotect.CoreProtectAPI;
 import org.bukkit.command.CommandSender;
+import org.jspecify.annotations.NonNull;
 
 /**
  * Responsible for remembering actions / data / lookups for a player, allowing
@@ -29,13 +30,14 @@ public class HuntSession {
         activity = System.currentTimeMillis();
     }
 
-    public synchronized static HuntSession getSession(CommandSender sender) {
+    public synchronized static HuntSession getSession(@NonNull CommandSender sender) {
         if (!sessionMap.containsKey(sender.getName())) {
             sessionMap.put(sender.getName(), new HuntSession());
         }
         return sessionMap.get(sender.getName());
     }
 
+    @SuppressWarnings("unused")
     public long getActivity() {
         return activity;
     }
@@ -76,14 +78,13 @@ public class HuntSession {
 
     public List<CoreProtectAPI.ParseResult> getUserData(String player) {
         activity = System.currentTimeMillis();
-        return userData != null && userData.containsKey(player) ? userData.get(player) : Collections.<CoreProtectAPI.ParseResult>emptyList();
+        return userData != null && userData.containsKey(player) ? userData.get(player) : Collections.emptyList();
     }
 
-    public HuntSession setUserData(Map<String, List<CoreProtectAPI.ParseResult>> userData) {
+    public void setUserData(Map<String, List<CoreProtectAPI.ParseResult>> userData) {
         activity = System.currentTimeMillis();
         this.userData = userData;
         this.veins = null;
-        return this;
     }
 
     public List<OreVein> getVeins() {

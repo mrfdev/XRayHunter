@@ -2,6 +2,7 @@ package dk.lockfuglsang.xrayhunter;
 
 import dk.lockfuglsang.xrayhunter.command.MainCommand;
 import dk.lockfuglsang.xrayhunter.coreprotect.CoreProtectHandler;
+import java.util.Objects;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import net.coreprotect.CoreProtect;
@@ -9,6 +10,7 @@ import net.coreprotect.CoreProtectAPI;
 import org.bstats.bukkit.Metrics;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Bukkit Plugin for hunting X-Rayers using the CoreProtect API
@@ -37,16 +39,16 @@ public class XRayHunter extends JavaPlugin {
             log.log(Level.WARNING, "Failed to submit metrics data", e);
         }
         api = coreProtectAPI;
-        getCommand("xhunt").setExecutor(new MainCommand(this));
+        Objects.requireNonNull(getCommand("xhunt")).setExecutor(new MainCommand(this));
     }
 
-    // package protected
-    private CoreProtectAPI getCoreProtect() {
-        final Plugin plugin = getServer().getPluginManager().getPlugin("CoreProtect");
-        if (plugin instanceof CoreProtect && plugin.isEnabled()) {
-            final CoreProtectAPI api = ((CoreProtect) plugin).getAPI();
-            if (api != null && api.APIVersion() >= 9 && CoreProtectHandler.getAdaptor() != null) {
-                return api;
+    private @Nullable CoreProtectAPI getCoreProtect() {
+        for (Plugin pluginCP : getServer().getPluginManager().getPlugins()) {
+            if (pluginCP.getName().toLowerCase().contains("coreprotect")) {
+                if (!(pluginCP instanceof CoreProtect)) return null;
+                CoreProtectAPI CoreProtect = ((CoreProtect) pluginCP).getAPI();
+                if (!CoreProtect.isEnabled()) return null;
+                if (api != null && api.APIVersion() >= 9 && CoreProtectHandler.getAdaptor() != null) return api;
             }
         }
         return null;

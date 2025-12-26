@@ -6,6 +6,8 @@ import org.bukkit.ChunkSnapshot;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 import static dk.lockfuglsang.util.BlockUtil.isBreathable;
 
@@ -20,7 +22,8 @@ public enum LocationUtil {
             return null;
         }
         String s = "";
-        if (loc.getWorld() != null && loc.getWorld().getName() != null) {
+        if (loc.getWorld() != null) {
+            loc.getWorld().getName();
             s += loc.getWorld().getName() + ":";
         }
         s += String.format("%5.2f,%5.2f,%5.2f", loc.getX(), loc.getY(), loc.getZ());
@@ -35,7 +38,8 @@ public enum LocationUtil {
             return null;
         }
         String s = "";
-        if (loc.getWorld() != null && loc.getWorld().getName() != null) {
+        if (loc.getWorld() != null) {
+            loc.getWorld().getName();
             s += loc.getWorld().getName() + ":";
         }
         s += String.format("%1.0f,%1.0f,%1.0f", loc.getX(), loc.getY(), loc.getZ());
@@ -45,11 +49,7 @@ public enum LocationUtil {
         return s;
     }
 
-    public static boolean isEmptyLocation(Location location) {
-        return location == null || (location.getBlockX() == 0 && location.getBlockZ() == 0 && location.getBlockY() == 0);
-    }
-
-    public static Location findSafeLocation(Location loc, int radius) {
+    public static @Nullable Location findSafeLocation(@NonNull Location loc, int radius) {
         final int px = loc.getBlockX();
         final int py = loc.getBlockY();
         final int pz = loc.getBlockZ();
@@ -72,7 +72,7 @@ public enum LocationUtil {
         return null;
     }
 
-    private static ChunkSnapshot getSnapshot(World world, Set<ChunkSnapshot> chunks, int x, int z) {
+    private static @NonNull ChunkSnapshot getSnapshot(World world, @NonNull Set<ChunkSnapshot> chunks, int x, int z) {
         for (final ChunkSnapshot chunk : chunks) {
             if (chunk.getX() == x && chunk.getZ() == z) {
                 return chunk;
@@ -83,9 +83,8 @@ public enum LocationUtil {
         return snapshot;
     }
 
-    private static boolean isSafeLocation(int cx, int cy, int cz, ChunkSnapshot chunk) {
+    private static boolean isSafeLocation(int cx, int dy, int cz, @NonNull ChunkSnapshot chunk) {
         final int dx = cx < 0 ? ((cx % 16) + 16) % 16 : cx % 16;
-        final int dy = cy;
         final int dz = cz < 0 ? ((cz % 16) + 16) % 16 : cz % 16;
         final Material ground = chunk.getBlockType(dx, dy - 1, dz);
         final Material air1 = chunk.getBlockType(dx, dy, dz);

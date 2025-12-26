@@ -20,6 +20,7 @@ import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
+import org.jspecify.annotations.NonNull;
 
 /**
  * Lookups possible candidates for the last days.
@@ -33,12 +34,12 @@ class LookupCommand extends AbstractCommand {
     }
 
     @Override
-    public boolean execute(final CommandSender sender, String alias, Map<String, Object> data, String... args) {
+    public boolean execute(final CommandSender sender, String alias, Map<String, Object> data, String @NonNull ... args) {
         final Player player = (Player) sender;
         if (args.length == 1) {
             final long millis = TimeUtil.millisFromString(args[0]);
             if (millis == 0) {
-                sender.sendMessage("Invalid time-argument, try \u00a792d");
+                sender.sendMessage("Invalid time-argument, try §92d");
                 return false;
             }
 
@@ -67,7 +68,7 @@ class LookupCommand extends AbstractCommand {
         blockCount.put(blockId, blockCount.get(blockId) + 1);
     }
 
-    private String getBlockKey(CoreProtectAPI.ParseResult parse) {
+    private @NonNull String getBlockKey(CoreProtectAPI.@NonNull ParseResult parse) {
         return parse.worldName() + ":" + parse.getX() + "," + parse.getY() + "," + parse.getZ();
     }
 
@@ -129,48 +130,42 @@ class LookupCommand extends AbstractCommand {
             }
 
             if (((Player) sender).getWorld().getEnvironment() == World.Environment.NETHER) {
-                Collections.sort(top10, new PlayerStatsComparatorNether());
-                HuntSession.getSession(sender)
-                        .setLookupCache(top10)
-                        .setUserData(dataMap);
+                top10.sort(new PlayerStatsComparatorNether());
+                HuntSession.getSession(sender).setLookupCache(top10).setUserData(dataMap);
 
                 final StringBuilder sb = new StringBuilder();
                 sb.append("Listing");
                 for (final Material mat : PlayerStatsComparatorNether.MATS) {
-                    sb.append(PlayerStatsComparatorNether.getColor(mat) + "§l " + mat.name().substring(0, 3));
+                    sb.append(PlayerStatsComparatorNether.getColor(mat)).append("§l ").append(mat.name(), 0, 3);
                 }
                 sb.append("\n");
                 int place = 1;
                 for (final PlayerStats stat : top10.subList(0, Math.min(top10.size(), 10))) {
                     sb.append(MessageFormat.format("§7#{0}", place));
                     for (final Material mat : PlayerStatsComparatorNether.MATS) {
-                        sb.append(PlayerStatsComparatorNether.getColor(mat) +
-                                MessageFormat.format(" §l{0,number,##}§7({1,number,##}%)", stat.getCount(mat), 100 * stat.getRatio(mat)));
+                        sb.append(PlayerStatsComparatorNether.getColor(mat)).append(MessageFormat.format(" §l{0,number,##}§7({1,number,##}%)", stat.getCount(mat), 100 * stat.getRatio(mat)));
                     }
-                    sb.append(" §9" + stat.getPlayer() + "\n");
+                    sb.append(" §9").append(stat.getPlayer()).append("\n");
                     place++;
                 }
                 sender.sendMessage(sb.toString().split("\n"));
             } else {
-                Collections.sort(top10, new PlayerStatsComparator());
-                HuntSession.getSession(sender)
-                        .setLookupCache(top10)
-                        .setUserData(dataMap);
+                top10.sort(new PlayerStatsComparator());
+                HuntSession.getSession(sender).setLookupCache(top10).setUserData(dataMap);
 
                 final StringBuilder sb = new StringBuilder();
                 sb.append("Listing");
                 for (final Material mat : PlayerStatsComparator.DISPLAY_MATS) {
-                    sb.append(PlayerStatsComparator.getColor(mat) + "§l " + mat.name().substring(0, 3));
+                    sb.append(PlayerStatsComparator.getColor(mat)).append("§l ").append(mat.name(), 0, 3);
                 }
                 sb.append("\n");
                 int place = 1;
                 for (final PlayerStats stat : top10.subList(0, Math.min(top10.size(), 10))) {
                     sb.append(MessageFormat.format("§7#{0}", place));
                     for (final Material mat : PlayerStatsComparator.DISPLAY_MATS) {
-                        sb.append(PlayerStatsComparator.getColor(mat) +
-                                MessageFormat.format(" §l{0,number,##}§7({1,number,##}%)", stat.getCount(mat), 100 * stat.getRatio(mat)));
+                        sb.append(PlayerStatsComparator.getColor(mat)).append(MessageFormat.format(" §l{0,number,##}§7({1,number,##}%)", stat.getCount(mat), 100 * stat.getRatio(mat)));
                     }
-                    sb.append(" §9" + stat.getPlayer() + "\n");
+                    sb.append(" §9").append(stat.getPlayer()).append("\n");
                     place++;
                 }
                 sender.sendMessage(sb.toString().split("\n"));

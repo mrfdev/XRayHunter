@@ -6,10 +6,12 @@ import net.coreprotect.CoreProtectAPI;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
+import org.jspecify.annotations.NonNull;
 
 /**
  * Data object for an ore-find
  */
+@SuppressWarnings("JavadocDeclaration")
 public class OreVein {
     private static final int MAX_DISTANCE = 5;
     private final Material type;
@@ -17,7 +19,7 @@ public class OreVein {
     private int time;
     private String worldName;
 
-    public OreVein(CoreProtectAPI.ParseResult ore) {
+    public OreVein(CoreProtectAPI.@NonNull ParseResult ore) {
         type = ore.getType();
         add(ore);
     }

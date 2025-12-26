@@ -51,19 +51,6 @@ public enum TimeUtil {
         return longString != null && !longString.isEmpty() ? Long.parseLong(longString) : 0;
     }
 
-    public static String ticksAsString(int ticks) {
-        return millisAsString(ticks * 50L);
-    }
-
-    public static long secondsAsTicks(int secs) {
-        // 20 ticks per second = 50 ms per tick
-        return (secs * 100L) / 5;
-    }
-
-    public static long secondsAsMillis(long timeout) {
-        return timeout * 1000;
-    }
-
     public static int millisAsSeconds(long millis) {
         return (int) Math.ceil(millis / 1000f);
     }

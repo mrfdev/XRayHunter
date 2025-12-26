@@ -5,7 +5,7 @@ description: XRay Hunter for CoreProtect v${project.version}
 author: R4zorax
 prefix: XRayHunter
 softdepend: [ CoreProtect ]
-api-version: 1.16
+api-version: 1.21.11
 commands:
   xrayhunt:
     description: Hunt XRayers

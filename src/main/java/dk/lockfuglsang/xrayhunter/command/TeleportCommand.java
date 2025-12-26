@@ -8,6 +8,7 @@ import java.util.Map;
 import org.bukkit.Location;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
+import org.jspecify.annotations.NonNull;
 
 import static dk.lockfuglsang.minecraft.po.I18nUtil.tr;
 
@@ -20,7 +21,7 @@ public class TeleportCommand extends AbstractCommand {
     }
 
     @Override
-    public boolean execute(CommandSender sender, String alias, Map<String, Object> data, String... args) {
+    public boolean execute(CommandSender sender, String alias, Map<String, Object> data, String @NonNull ... args) {
         HuntSession session = HuntSession.getSession(sender);
         if (args.length == 1 && args[0].matches("\\d+") && sender instanceof Player) {
             int index = Integer.parseInt(args[0], 10);
@@ -34,7 +35,7 @@ public class TeleportCommand extends AbstractCommand {
         return false;
     }
 
-    private void safeTeleport(Player player, OreVein oreVein) {
+    private void safeTeleport(Player player, @NonNull OreVein oreVein) {
         Location loc = oreVein.getLocation();
         Location tpLoc = LocationUtil.findSafeLocation(loc, 7);
         if (tpLoc != null) {
