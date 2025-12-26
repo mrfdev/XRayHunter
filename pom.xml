@@ -2,13 +2,13 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>dk.lockfuglsang</groupId>
 	<artifactId>XRayHunter</artifactId>
-	<version>1.2.5</version>
+	<version>1.2.6</version>
 	<name>CoreProtect XRay Hunter</name>
 
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-		<maven.compiler.source>11</maven.compiler.source>
-		<maven.compiler.target>11</maven.compiler.target>
+		<maven.compiler.source>25</maven.compiler.source>
+		<maven.compiler.target>25</maven.compiler.target>
 	</properties>
 
 	<repositories>
@@ -17,12 +17,8 @@
 			<url>https://jitpack.io</url>
 		</repository>
 		<repository>
-			<id>spigot-repo</id>
-			<url>https://hub.spigotmc.org/nexus/content/repositories/snapshots/</url>
-		</repository>
-		<repository>
-			<id>bungeecord-repo</id>
-			<url>https://oss.sonatype.org/content/repositories/snapshots</url>
+			<id>papermc</id>
+			<url>https://repo.papermc.io/repository/maven-public/</url>
 		</repository>
 		<repository>
 			<id>CodeMC</id>
@@ -30,7 +26,7 @@
 		</repository>
 		<repository>
 			<id>coreprotect-repo</id>
-			<url>http://maven.playpro.com/</url>
+			<url>https://maven.playpro.com/</url>
 		</repository>
 		<repository>
 			<id>uSkyBlock-mvn-repo</id>
@@ -40,20 +36,20 @@
 
 	<dependencies>
 		<dependency>
-			<groupId>org.spigotmc</groupId>
-			<artifactId>spigot-api</artifactId>
-			<version>1.18.2-R0.1-SNAPSHOT</version>
+			<groupId>io.papermc.paper</groupId>
+			<artifactId>paper-api</artifactId>
+			<version>1.21.11-R0.1-SNAPSHOT</version>
 			<scope>provided</scope>
 		</dependency>
 		<dependency>
 			<groupId>org.bstats</groupId>
 			<artifactId>bstats-bukkit</artifactId>
-			<version>2.2.1</version>
+			<version>3.1.0</version>
 		</dependency>
 		<dependency>
 			<groupId>net.coreprotect</groupId>
 			<artifactId>coreprotect</artifactId>
-			<version>21.1</version>
+			<version>23.1</version>
 			<scope>provided</scope>
 		</dependency>
 		<dependency>
@@ -72,8 +68,20 @@
 		<plugins>
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-compiler-plugin</artifactId>
+				<version>3.14.1</version>
+				<configuration>
+					<compilerArgs>
+						<arg>-Xlint:deprecation</arg>
+						<arg>-Xlint:-options</arg>
+						<arg>-Xdiags:verbose</arg>
+					</compilerArgs>
+				</configuration>
+			</plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-shade-plugin</artifactId>
-				<version>3.2.4</version>
+				<version>3.6.1</version>
 				<configuration>
 					<createDependencyReducedPom>false</createDependencyReducedPom>
 					<relocations>
