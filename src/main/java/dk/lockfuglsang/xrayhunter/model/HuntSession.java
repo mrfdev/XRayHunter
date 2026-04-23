@@ -37,6 +37,10 @@ public class HuntSession {
         return sessionMap.get(sender.getName());
     }
 
+    public static int getSessionCount() {
+        return sessionMap.size();
+    }
+
     @SuppressWarnings("unused")
     public long getActivity() {
         return activity;

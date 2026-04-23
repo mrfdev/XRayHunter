@@ -1,4 +1,8 @@
+.DS_Store
+.gradle/
 .idea
 *.iml
-target
+build/
+target/
 dependency-reduced-pom.xml
+/servers/

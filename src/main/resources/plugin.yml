@@ -1,19 +1,43 @@
-name: XRayHunter
+name: @pluginName@
 main: dk.lockfuglsang.xrayhunter.XRayHunter
-version: ${project.version}
-description: XRay Hunter for CoreProtect v${project.version}
-author: R4zorax
+version: @version@
+api-version: @targetBukkitApiVersion@
+authors: [R4zorax, mrfloris]
+depend: [CoreProtect]
+description: CoreProtect 23.4 add-on for suspicious mining stats on Paper 26.1.2.
 prefix: XRayHunter
-softdepend: [ CoreProtect ]
-api-version: 1.21.11
 commands:
-  xrayhunt:
-    description: Hunt XRayers
-    aliases: [ xhunt, xr ]
-    usage: /<command> - Access XRay Hunter
+  xrayhunter:
+    aliases: [xhunt, xr]
+    usage: |
+      /xrayhunter help
+      /xrayhunter lookup [time] [world]
+      /xrayhunter <time>
+      /xrayhunter detail <index|player> [page]
+      /xrayhunter teleport <index>
+      /xrayhunter debug [help|permissions|commands|config]
+      /xrayhunter debug set <key> <value>
+      /xrayhunter reload
+    description: Inspect CoreProtect mining data, cached details, and debug/config info.
 
 permissions:
-  xhunt.*:
+  xrayhunter.use:
+    description: Allows lookup, detail, and teleport subcommands.
+    default: op
+  xrayhunter.admin:
+    description: Allows debug pages, config updates, and reload.
+    default: op
     children:
-      xhunt.use:
-        description: Let the player use the /xhunt command
+      xrayhunter.use: true
+      xhunt.use: true
+  xhunt.use:
+    description: Legacy alias for xrayhunter.use.
+    default: op
+    children:
+      xrayhunter.use: true
+  xhunt.admin:
+    description: Legacy alias for xrayhunter.admin.
+    default: op
+    children:
+      xhunt.use: true
+      xrayhunter.use: true

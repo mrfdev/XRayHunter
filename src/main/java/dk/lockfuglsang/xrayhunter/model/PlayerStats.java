@@ -36,6 +36,6 @@ public class PlayerStats {
     }
 
     public float getRatio(Material mat) {
-        return getCount(mat) / total;
+        return total == 0 ? 0.0F : getCount(mat) / total;
     }
 }

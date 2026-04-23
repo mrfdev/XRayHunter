@@ -1,0 +1,96 @@
+import org.apache.tools.ant.filters.ReplaceTokens
+
+plugins {
+    id 'java'
+}
+
+def pluginName = '1MB-XRayHunter'
+def javaTarget = 25
+def targetPaperVersion = '26.1.2'
+def targetPaperApiBuild = '19'
+def targetBukkitApiVersion = '1.21.11'
+def targetCoreProtectVersion = '23.4'
+// CoreProtect 23.4 is validated against the local server jar when it is present in this repo.
+def localCoreProtectJar = file('servers/Server-Two-Paper-26.1.2/plugins/CoreProtect-23.4b.jar')
+def versionPropertiesFile = file('version.properties')
+def versionProperties = new Properties()
+if (versionPropertiesFile.exists()) {
+    versionPropertiesFile.withInputStream { stream ->
+        versionProperties.load(stream)
+    }
+}
+def pluginVersion = versionProperties.getProperty('pluginVersion', '2.0.0')
+def currentBuildNumber = Integer.parseInt(versionProperties.getProperty('buildNumber', '011'))
+def nextBuildNumber = currentBuildNumber + 1
+def buildNumber = String.format('%03d', nextBuildNumber)
+def pluginBuildVersion = "${pluginVersion}-${buildNumber}-j${javaTarget}-${targetPaperVersion}"
+
+group = 'dk.lockfuglsang'
+version = pluginBuildVersion
+
+java {
+    toolchain.languageVersion = JavaLanguageVersion.of(javaTarget)
+}
+
+repositories {
+    mavenCentral()
+    maven {
+        name = 'papermc'
+        url = uri('https://repo.papermc.io/repository/maven-public/')
+    }
+    maven {
+        name = 'playpro'
+        url = uri('https://maven.playpro.com/')
+    }
+}
+
+dependencies {
+    compileOnly("io.papermc.paper:paper-api:${targetPaperVersion}.build.${targetPaperApiBuild}-alpha")
+    compileOnly("org.jspecify:jspecify:1.0.0")
+    if (localCoreProtectJar.exists()) {
+        compileOnly(files(localCoreProtectJar))
+    } else {
+        compileOnly("net.coreprotect:coreprotect:${targetCoreProtectVersion}")
+    }
+}
+
+processResources {
+    inputs.properties([
+            pluginName              : pluginName.toString(),
+            pluginVersion           : pluginVersion.toString(),
+            buildNumber             : buildNumber.toString(),
+            version                 : version.toString(),
+            javaTarget              : javaTarget.toString(),
+            targetPaperVersion      : targetPaperVersion.toString(),
+            targetBukkitApiVersion  : targetBukkitApiVersion.toString(),
+            targetCoreProtectVersion: targetCoreProtectVersion.toString()
+    ])
+    filteringCharset = 'UTF-8'
+    filesMatching(['plugin.yml', 'build-info.properties']) {
+        filter ReplaceTokens, tokens: [
+                pluginName              : pluginName.toString(),
+                pluginVersion           : pluginVersion.toString(),
+                buildNumber             : buildNumber.toString(),
+                version                 : version.toString(),
+                javaTarget              : javaTarget.toString(),
+                targetPaperVersion      : targetPaperVersion.toString(),
+                targetBukkitApiVersion  : targetBukkitApiVersion.toString(),
+                targetCoreProtectVersion: targetCoreProtectVersion.toString()
+        ]
+    }
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.release = javaTarget
+    options.compilerArgs += ['-Xlint:deprecation']
+}
+
+tasks.jar {
+    archiveFileName.set("${pluginName}-v${pluginBuildVersion}.jar")
+    doLast {
+        versionPropertiesFile.text = """# Updated after a successful jar build.
+pluginVersion=${pluginVersion}
+buildNumber=${buildNumber}
+"""
+    }
+}

@@ -1,0 +1,8 @@
+# 1MB-XRayHunter todo
+
+- Refactor the internal `xrayhunter` package and legacy naming toward a cleaner `1MB-XRayHunter` code identity.
+- Add a stronger suspicion summary or heuristic score so staff can sort by more than raw ore totals.
+- Add optional exported text reports for lookups and debug snapshots.
+- Expand `/xrayhunter debug set` once more config toggles are added.
+- Improve tab completion with cached player names, page numbers, and recent lookup contexts.
+- Add automated tests for tracked-material coverage and CoreProtect compatibility checks.

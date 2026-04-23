@@ -1,59 +1,153 @@
 package dk.lockfuglsang.xrayhunter;
 
 import dk.lockfuglsang.xrayhunter.command.MainCommand;
+import java.io.File;
+import java.text.MessageFormat;
+import java.util.List;
 import java.util.Objects;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import net.coreprotect.CoreProtect;
 import net.coreprotect.CoreProtectAPI;
-import org.bstats.bukkit.Metrics;
+import org.bukkit.Material;
+import org.bukkit.World;
+import org.bukkit.command.PluginCommand;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.jspecify.annotations.Nullable;
 
 /**
- * Bukkit Plugin for hunting X-Rayers using the CoreProtect API
+ * Bukkit plugin for hunting suspicious ore-mining patterns using CoreProtect data.
  */
 public class XRayHunter extends JavaPlugin {
-    private static final Logger log = Logger.getLogger(XRayHunter.class.getName());
+    private static @Nullable CoreProtectAPI api;
 
-    private static CoreProtectAPI api;
+    private BuildInfo buildInfo;
+    private PluginSettings settings;
 
-    public static CoreProtectAPI getCoreProtectAPI() {
+    public static @Nullable CoreProtectAPI getCoreProtectAPI() {
         return api;
     }
 
     @Override
     public void onEnable() {
+        buildInfo = BuildInfo.load(this);
+        saveDefaultConfig();
+        reloadPluginConfiguration();
+
+        api = getCoreProtect();
+        if (api == null) {
+            getLogger().severe("CoreProtect was not found or did not expose a supported API version.");
+            getLogger().severe("This add-on requires CoreProtect API version 11 (CoreProtect 23.4 target).");
+            getServer().getPluginManager().disablePlugin(this);
+            return;
+        }
+
+        final MainCommand mainCommand = new MainCommand(this);
+        final PluginCommand command = Objects.requireNonNull(getCommand("xrayhunter"), "xrayhunter command missing");
+        command.setExecutor(mainCommand);
+        command.setTabCompleter(mainCommand);
+
+        if (settings.startupSelfCheckEnabled()) {
+            runStartupSelfCheck();
+        }
+    }
+
+    @Override
+    public void onDisable() {
         api = null;
-        final CoreProtectAPI coreProtectAPI = getCoreProtect();
+    }
 
-        if (coreProtectAPI == null) {
-            log.info("No valid CoreProtect plugin was found!");
-        }
+    public void reloadPluginConfiguration() {
+        reloadConfig();
+        settings = PluginSettings.load(this);
+    }
 
-        try {
-            new Metrics(this, 3013);
-        } catch (final Exception e) {
-            log.log(Level.WARNING, "Failed to submit metrics data", e);
+    public BuildInfo getBuildInfo() {
+        return buildInfo;
+    }
+
+    public PluginSettings getSettings() {
+        return settings;
+    }
+
+    public List<Material> getLookupMaterials(World.Environment environment) {
+        return settings.getLookupMaterials(environment);
+    }
+
+    public List<Material> getDisplayMaterials(World.Environment environment) {
+        return settings.getDisplayMaterials(environment);
+    }
+
+    public boolean isCoreProtectHooked() {
+        return api != null;
+    }
+
+    public @Nullable Plugin getCoreProtectPlugin() {
+        return getServer().getPluginManager().getPlugin("CoreProtect");
+    }
+
+    public @Nullable File getCoreProtectDatabaseFile() {
+        final Plugin coreProtectPlugin = getCoreProtectPlugin();
+        if (coreProtectPlugin == null) {
+            return null;
         }
-        api = coreProtectAPI;
-        Objects.requireNonNull(getCommand("xhunt")).setExecutor(new MainCommand(this));
+        return new File(coreProtectPlugin.getDataFolder(), "database.db");
+    }
+
+    public String getCoreProtectPluginVersion() {
+        final Plugin coreProtectPlugin = getCoreProtectPlugin();
+        return coreProtectPlugin == null ? "unavailable" : coreProtectPlugin.getPluginMeta().getVersion();
+    }
+
+    private void runStartupSelfCheck() {
+        final @Nullable File databaseFile = getCoreProtectDatabaseFile();
+        getLogger().info(MessageFormat.format(
+                "Loaded {0} v{1} (build {2}) for Paper {3} / Bukkit API {4}.",
+                buildInfo.pluginName(),
+                buildInfo.pluginVersion(),
+                buildInfo.buildNumber(),
+                buildInfo.paperTarget(),
+                buildInfo.bukkitApiVersion()
+        ));
+        getLogger().info(MessageFormat.format(
+                "CoreProtect hooked: {0} (plugin {1}, API {2}).",
+                Boolean.toString(isCoreProtectHooked()),
+                getCoreProtectPluginVersion(),
+                api == null ? "unavailable" : Integer.toString(api.APIVersion())
+        ));
+        getLogger().info(MessageFormat.format(
+                "Default lookup time: {0}; top results: {1}; detail page size: {2}.",
+                settings.defaultLookupTime(),
+                Integer.toString(settings.topResults()),
+                Integer.toString(settings.detailPageSize())
+        ));
+        getLogger().info("Overworld tracking: " + joinMaterials(settings.overworldDisplayMaterials()));
+        getLogger().info("Nether tracking: " + joinMaterials(settings.netherDisplayMaterials()));
+        if (databaseFile != null) {
+            getLogger().info("CoreProtect database: " + databaseFile.getAbsolutePath());
+        }
     }
 
     private @Nullable CoreProtectAPI getCoreProtect() {
-        for (Plugin pluginCP : getServer().getPluginManager().getPlugins()) {
-            if (pluginCP.getName().toLowerCase().contains("coreprotect")) {
-                if (!(pluginCP instanceof CoreProtect)) return null;
-                CoreProtectAPI CoreProtect = ((CoreProtect) pluginCP).getAPI();
-                if (!CoreProtect.isEnabled()) return null;
-                int apiVersion = CoreProtect.APIVersion();
-                return switch (apiVersion) {
-                    case 7, 8, 9, 10, 11 -> CoreProtect;
-                    default -> null;
-                };
-            }
+        final Plugin plugin = getCoreProtectPlugin();
+        if (!(plugin instanceof CoreProtect coreProtectPlugin)) {
+            return null;
         }
-        return null;
+
+        final CoreProtectAPI coreProtectApi = coreProtectPlugin.getAPI();
+        if (!coreProtectApi.isEnabled()) {
+            return null;
+        }
+
+        return switch (coreProtectApi.APIVersion()) {
+            case 7, 8, 9, 10, 11 -> coreProtectApi;
+            default -> null;
+        };
+    }
+
+    private String joinMaterials(List<Material> materials) {
+        return materials.stream()
+                .map(material -> material.name().toLowerCase())
+                .reduce((left, right) -> left + ", " + right)
+                .orElse("none");
     }
 }

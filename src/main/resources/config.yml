@@ -1,1 +1,104 @@
-version: 1
+# Startup behavior.
+startup:
+  # Log a short self-check summary when the plugin enables.
+  #
+  # Used by: server startup
+  # Command: /xrayhunter debug set startup.self-check-enabled <true|false>
+  self-check-enabled: true
+
+# Shared lookup defaults.
+defaults:
+  # Default lookup window when /xrayhunter lookup runs without a [time] argument.
+  #
+  # Used by: /xrayhunter lookup [time], /xrayhunter <time>
+  # Command: /xrayhunter debug set defaults.lookup-time 7d
+  lookup-time: 2d
+
+# Shared display settings.
+display:
+  # Maximum number of players shown in the initial lookup result list.
+  #
+  # Used by: /xrayhunter lookup [time], /xrayhunter <time>
+  # Command: /xrayhunter debug set display.top-results 15
+  top-results: 10
+
+  # Number of vein rows shown on each detail page.
+  #
+  # Used by: /xrayhunter detail <index|player> [page]
+  # Command: /xrayhunter debug set display.detail-page-size 10
+  detail-page-size: 10
+
+# Console safety settings.
+console:
+  # Allow console lookups without a world argument.
+  # These scan across every loaded world and can be expensive on large CoreProtect databases.
+  #
+  # Used by: /xrayhunter lookup [time] from console
+  # Command: /xrayhunter debug set console.allow-server-wide-lookups true
+  allow-server-wide-lookups: true
+
+  # Maximum time window allowed for all-world console lookups when no world is specified.
+  # Longer console lookups must provide a world name to avoid giant CoreProtect result sets.
+  #
+  # Used by: /xrayhunter lookup [time] from console
+  # Command: /xrayhunter debug set console.max-all-world-lookup-time 30d
+  max-all-world-lookup-time: 30d
+
+# Tracked materials.
+tracking:
+  overworld:
+    # Full lookup material list. Deepslate variants are normalized back to their base ore in reports.
+    # Raw iron and raw copper are intentionally included.
+    # Raw gold block is intentionally not tracked here.
+    lookup-materials:
+      - diamond_ore
+      - deepslate_diamond_ore
+      - emerald_ore
+      - deepslate_emerald_ore
+      - gold_ore
+      - deepslate_gold_ore
+      - iron_ore
+      - deepslate_iron_ore
+      - raw_iron_block
+      - copper_ore
+      - deepslate_copper_ore
+      - raw_copper_block
+      - lapis_ore
+      - deepslate_lapis_ore
+      - redstone_ore
+      - deepslate_redstone_ore
+      - coal_ore
+      - deepslate_coal_ore
+      - stone
+      - deepslate
+
+    # Display order for the overworld lookup summary.
+    display-materials:
+      - diamond_ore
+      - emerald_ore
+      - gold_ore
+      - iron_ore
+      - raw_iron_block
+      - copper_ore
+      - raw_copper_block
+      - lapis_ore
+      - redstone_ore
+      - coal_ore
+      - stone
+
+  nether:
+    # Nether tracking includes ancient debris, gilded blackstone, and the main ore/base block rows.
+    lookup-materials:
+      - ancient_debris
+      - gilded_blackstone
+      - nether_gold_ore
+      - nether_quartz_ore
+      - netherrack
+
+    # Display order for the nether lookup summary.
+    display-materials:
+      - ancient_debris
+      - gilded_blackstone
+      - nether_gold_ore
+      - nether_quartz_ore
+      - netherrack

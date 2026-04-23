@@ -1,49 +1,52 @@
 package dk.lockfuglsang.xrayhunter.command;
 
-import dk.lockfuglsang.minecraft.command.AbstractCommand;
 import dk.lockfuglsang.util.LocationUtil;
 import dk.lockfuglsang.xrayhunter.model.HuntSession;
 import dk.lockfuglsang.xrayhunter.model.OreVein;
-import java.util.Map;
+import java.text.MessageFormat;
 import org.bukkit.Location;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.jspecify.annotations.NonNull;
 
-import static dk.lockfuglsang.minecraft.po.I18nUtil.tr;
-
 /**
- * Supports teleporting to a vein location
+ * Supports teleporting to a cached vein location.
  */
-public class TeleportCommand extends AbstractCommand {
-    public TeleportCommand() {
-        super("teleport|tp", null, "index", "Teleports you to a vein location");
-    }
+public final class TeleportCommand {
+    public boolean execute(CommandSender sender, String @NonNull ... args) {
+        if (!(sender instanceof Player player)) {
+            sender.sendMessage("§c/xrayhunter teleport can only be used in-game.");
+            return true;
+        }
 
-    @Override
-    public boolean execute(CommandSender sender, String alias, Map<String, Object> data, String @NonNull ... args) {
-        HuntSession session = HuntSession.getSession(sender);
-        if (args.length == 1 && args[0].matches("\\d+") && sender instanceof Player) {
-            int index = Integer.parseInt(args[0], 10);
+        final HuntSession session = HuntSession.getSession(sender);
+        if (args.length == 1 && args[0].matches("\\d+")) {
+            final int index = Integer.parseInt(args[0], 10);
             if (index < 1 || session.getVeins() == null || session.getVeins().size() < index) {
-                sender.sendMessage(tr("Invalid index supplied, try running lookup again."));
+                sender.sendMessage("§cInvalid index supplied. Try running lookup again.");
             } else {
-                safeTeleport((Player) sender, session.getVeins().get(index - 1));
+                safeTeleport(player, session.getVeins().get(index - 1));
             }
             return true;
         }
-        return false;
+
+        sender.sendMessage("§cUsage: /xrayhunter teleport <index>");
+        return true;
     }
 
     private void safeTeleport(Player player, @NonNull OreVein oreVein) {
-        Location loc = oreVein.getLocation();
-        Location tpLoc = LocationUtil.findSafeLocation(loc, 7);
-        if (tpLoc != null) {
-            Location d = loc.clone().subtract(tpLoc);
-            tpLoc.setDirection(d.toVector());
-            player.teleport(tpLoc.add(0.5, 0, 0.5));
-        } else {
-            player.sendMessage(tr("§cNo safe teleport location found near {0}", LocationUtil.asString(loc)));
+        final Location veinLocation = oreVein.getLocation();
+        final Location teleportLocation = LocationUtil.findSafeLocation(veinLocation, 7);
+        if (teleportLocation != null) {
+            final Location directionTarget = veinLocation.clone().subtract(teleportLocation);
+            teleportLocation.setDirection(directionTarget.toVector());
+            player.teleport(teleportLocation.add(0.5, 0, 0.5));
+            return;
         }
+
+        player.sendMessage(MessageFormat.format(
+                "§cNo safe teleport location found near {0}",
+                LocationUtil.asString(veinLocation)
+        ));
     }
 }
