@@ -2,6 +2,9 @@
 
 - Refactor the internal `xrayhunter` package and legacy naming toward a cleaner `1MB-XRayHunter` code identity.
 - Add a stronger suspicion summary or heuristic score so staff can sort by more than raw ore totals.
+- Add optional lookup modes or config toggles for alternative console layouts, such as ore-count-only, ore-plus-ratio, or material-group presets.
+- Add query timing, progress, row count, and timeout safeguards for very large archival worlds and incoming 80 GB to 1 TB databases.
+- Add an optional persistent pre-aggregated archive cache on disk so repeated `alltime allworlds` scans do not always need to hit CoreProtect directly after restart.
 - Add optional exported text reports for lookups and debug snapshots.
 - Expand `/xrayhunter debug set` once more config toggles are added.
 - Improve tab completion with cached player names, page numbers, and recent lookup contexts.

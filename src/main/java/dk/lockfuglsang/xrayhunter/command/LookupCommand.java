@@ -2,36 +2,36 @@ package dk.lockfuglsang.xrayhunter.command;
 
 import dk.lockfuglsang.util.TimeUtil;
 import dk.lockfuglsang.xrayhunter.XRayHunter;
-import dk.lockfuglsang.xrayhunter.coreprotect.Callback;
-import dk.lockfuglsang.xrayhunter.coreprotect.CoreProtectHandler;
+import dk.lockfuglsang.xrayhunter.coreprotect.CoreProtectDatabaseLookup;
+import dk.lockfuglsang.xrayhunter.coreprotect.DatabaseLookupResult;
 import dk.lockfuglsang.xrayhunter.model.HuntSession;
+import dk.lockfuglsang.xrayhunter.model.LookupContext;
 import dk.lockfuglsang.xrayhunter.model.PlayerStats;
 import dk.lockfuglsang.xrayhunter.model.PlayerStatsComparator;
-import java.text.MessageFormat;
+import java.time.Instant;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
-import net.coreprotect.CoreProtectAPI;
-import org.bukkit.Location;
+import net.kyori.adventure.text.Component;
 import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
-import org.jspecify.annotations.Nullable;
 import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Looks up suspicious players within the requested time window.
  */
 public final class LookupCommand {
-    private static final double WORLD_LOOKUP_ANCHOR_X = 0.0D;
-    private static final double WORLD_LOOKUP_ANCHOR_Y = 64.0D;
-    private static final double WORLD_LOOKUP_ANCHOR_Z = 0.0D;
+    private static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss z");
+    private static final String OPTION_ALL = "-all";
+    private static final String TOKEN_ALLTIME = "alltime";
+    private static final String TOKEN_ALLWORLDS = "allworlds";
 
     private final XRayHunter plugin;
 
@@ -40,81 +40,299 @@ public final class LookupCommand {
     }
 
     public boolean execute(final CommandSender sender, String @NonNull ... args) {
-        if (args.length > 2) {
-            sender.sendMessage("§cUsage: §f/xrayhunter lookup [time] [world]");
-            return true;
-        }
-
-        final String timeArgument = args.length >= 1 ? args[0] : plugin.getSettings().defaultLookupTime();
-        final long millis = TimeUtil.millisFromString(timeArgument);
-        if (millis == 0) {
-            sender.sendMessage("§cInvalid time argument. Try §f2d§c, §f12h§c, or §f30m§c.");
-            return true;
-        }
-
-        final @Nullable String worldName = args.length == 2 ? resolveWorldName(sender, args[1]) : null;
-        if (args.length == 2 && worldName == null) {
+        final @Nullable ParsedLookupRequest request = parseLookupRequest(sender, args);
+        if (request == null) {
             return true;
         }
 
         final Player player = sender instanceof Player ? (Player) sender : null;
-        final World targetWorld = worldName != null
-                ? plugin.getServer().getWorld(worldName)
-                : player != null ? player.getWorld() : null;
-        final boolean restrictWorld = targetWorld != null;
-        final World.Environment environment = targetWorld == null ? null : targetWorld.getEnvironment();
-        final List<Material> lookupMaterials = restrictWorld
-                ? plugin.getLookupMaterials(environment)
-                : combineMaterials(
-                        plugin.getSettings().overworldLookupMaterials(),
-                        plugin.getSettings().netherLookupMaterials()
-                );
-        final List<Material> displayMaterials = restrictWorld
-                ? plugin.getDisplayMaterials(environment)
-                : combineMaterials(
-                        plugin.getSettings().overworldDisplayMaterials(),
-                        plugin.getSettings().netherDisplayMaterials()
-                );
+        final @Nullable String lookupWorldName = request.explicitAllWorlds()
+                ? null
+                : request.lookupWorldName() != null
+                ? request.lookupWorldName()
+                : player != null ? player.getWorld().getName() : null;
 
-        if (player == null && !restrictWorld) {
+        if (player == null && lookupWorldName == null) {
             if (!plugin.getSettings().consoleAllowServerWideLookups()) {
                 sender.sendMessage("§cServer-wide console lookups are disabled in config.");
                 sender.sendMessage("§7Use §f/xrayhunter lookup <time> <world>§7 instead.");
                 return true;
             }
-            if (millis > plugin.getSettings().consoleMaxAllWorldLookupMillis()) {
-                sender.sendMessage("§cThat console lookup is too large for an all-world scan.");
-                sender.sendMessage("§7Max all-world console window: §f" + plugin.getSettings().consoleMaxAllWorldLookupTime());
-                sender.sendMessage("§7Use §f/xrayhunter lookup " + timeArgument + " <world>§7 for longer history.");
+            if (request.allTime() && !request.explicitAllWorlds()) {
+                sender.sendMessage("§cFull archive console lookups must be explicit.");
+                sender.sendMessage("§7Use §f/xrayhunter lookup alltime allworlds§7 or provide a single world.");
+                return true;
+            }
+            if (!request.explicitAllWorlds() && request.requestedMillis() > plugin.getSettings().consoleMaxAllWorldLookupMillis()) {
+                sender.sendMessage("§cThat console lookup is too large for an implicit all-world scan.");
+                sender.sendMessage("§7Max implicit all-world console window: §f" + plugin.getSettings().consoleMaxAllWorldLookupTime());
+                sender.sendMessage("§7Use §f/xrayhunter lookup " + request.timeArgument() + " <world>§7 or §f/xrayhunter lookup " + request.timeArgument() + " allworlds§7.");
                 return true;
             }
         }
 
-        final Location lookupLocation = buildLookupLocation(targetWorld, player);
+        final World loadedWorld = lookupWorldName == null ? null : plugin.getServer().getWorld(lookupWorldName);
+        final boolean restrictWorld = lookupWorldName != null;
+        final List<Material> allLookupMaterials = getLookupMaterials(loadedWorld, restrictWorld);
+        final List<Material> lookupMaterials = getEffectiveLookupMaterials(sender, allLookupMaterials, request.showAllColumns());
+        final List<Material> allDisplayMaterials = getDisplayMaterials(loadedWorld, restrictWorld);
+        final List<Material> displayMaterials = getEffectiveDisplayMaterials(sender, allDisplayMaterials, request.showAllColumns());
+        final List<Material> comparisonMaterials = allLookupMaterials;
+        final String viewLabel = getViewLabel(sender, request.showAllColumns(), displayMaterials, allDisplayMaterials);
+        final int sinceEpochSeconds = request.allTime()
+                ? 0
+                : (int) (System.currentTimeMillis() / 1000L) - TimeUtil.millisAsSeconds(request.requestedMillis());
 
         if (player == null) {
-            if (restrictWorld) {
-                sender.sendMessage("§7Running a world-scoped lookup for §f" + targetWorld.getName() + "§7.");
+            if (lookupWorldName != null) {
+                if (loadedWorld != null) {
+                    sender.sendMessage("§7Running a world-scoped lookup for §f" + lookupWorldName + "§7.");
+                } else {
+                    sender.sendMessage("§7Running a database-world lookup for §f" + lookupWorldName + "§7.");
+                }
+            } else if (request.explicitAllWorlds()) {
+                sender.sendMessage("§7Running an explicit all-world CoreProtect lookup across the full requested scope.");
+                sender.sendMessage("§7Using batched aggregate queries and a temporary summary cache for this large archive scan.");
             } else {
-                sender.sendMessage("§7Running a server-wide lookup across all worlds.");
+                sender.sendMessage("§7Running a server-wide lookup across all CoreProtect worlds.");
+            }
+            if (!request.showAllColumns() && !lookupMaterials.equals(allLookupMaterials)) {
+                sender.sendMessage("§7Using the compact high-value lookup set. Add §f-all§7 to include lower-value and base materials.");
+            }
+            if (!request.showAllColumns() && plugin.getSettings().consoleHighValueOnly() && !displayMaterials.equals(allDisplayMaterials)) {
+                sender.sendMessage("§7Using the compact high-value console view. Add §f-all§7 to show every tracked column.");
             }
         }
 
-        CoreProtectHandler.performLookup(
+        CoreProtectDatabaseLookup.performLookup(
                 plugin,
-                TimeUtil.millisAsSeconds(millis),
+                request.timeArgument(),
+                sinceEpochSeconds,
+                lookupWorldName,
                 lookupMaterials,
-                lookupLocation,
-                restrictWorld,
-                new LookupCallback(sender, worldName, displayMaterials)
+                comparisonMaterials,
+                displayMaterials,
+                plugin.getSettings().topResults(),
+                plugin.getSettings().excludedPlayers(),
+                result -> handleLookupResult(
+                        sender,
+                        lookupWorldName,
+                        loadedWorld,
+                        request.timeArgument(),
+                        request.allTime(),
+                        request.requestedMillis(),
+                        lookupMaterials,
+                        displayMaterials,
+                        viewLabel,
+                        sinceEpochSeconds,
+                        result
+                )
         );
         return true;
+    }
+
+    public boolean isTimeToken(String token) {
+        return isAllTimeToken(token) || TimeUtil.millisFromString(token) > 0;
+    }
+
+    private void handleLookupResult(
+            CommandSender sender,
+            @Nullable String lookupWorldName,
+            @Nullable World loadedWorld,
+            String timeArgument,
+            boolean allTime,
+            long requestedMillis,
+            List<Material> lookupMaterials,
+            List<Material> displayMaterials,
+            String viewLabel,
+            int sinceEpochSeconds,
+            DatabaseLookupResult result
+    ) {
+        final HuntSession session = HuntSession.getSession(sender);
+        if (result.hasError()) {
+            session.setLookupCache(List.of());
+            sender.sendMessage("§c" + result.errorMessage());
+            return;
+        }
+
+        final List<PlayerStats> topPlayers = new ArrayList<>();
+        for (Map.Entry<String, Map<Material, Integer>> entry : result.playerCounts().entrySet()) {
+            topPlayers.add(new PlayerStats(
+                    entry.getKey(),
+                    entry.getValue(),
+                    result.comparisonTotals().getOrDefault(entry.getKey(), 0)
+            ));
+        }
+
+        if (topPlayers.isEmpty()) {
+            session.setLookupCache(List.of());
+            sendNoActivityMessage(sender, lookupWorldName, allTime, requestedMillis, result.latestTrackedTimeSeconds());
+            return;
+        }
+
+        topPlayers.sort(new PlayerStatsComparator(displayMaterials));
+        session.setLookupCache(topPlayers);
+        session.setLookupContext(new LookupContext(sinceEpochSeconds, timeArgument, lookupWorldName, lookupMaterials));
+
+        final String scopeLabel;
+        if (lookupWorldName == null) {
+            scopeLabel = "all CoreProtect worlds";
+        } else if (loadedWorld == null) {
+            scopeLabel = lookupWorldName + " (database world)";
+        } else {
+            scopeLabel = lookupWorldName;
+        }
+
+        if (result.fromCache()) {
+            sender.sendMessage("§7Reused the recent temporary summary cache for this lookup.");
+        }
+
+        for (Component line : LookupReportFormatter.buildReport(
+                scopeLabel,
+                timeArgument,
+                viewLabel,
+                result.latestTrackedTimeSeconds(),
+                topPlayers,
+                displayMaterials,
+                plugin.getSettings().topResults()
+        )) {
+            sender.sendMessage(line);
+        }
+    }
+
+    private List<Material> getLookupMaterials(@Nullable World loadedWorld, boolean restrictWorld) {
+        if (loadedWorld != null) {
+            return plugin.getLookupMaterials(loadedWorld.getEnvironment());
+        }
+        return combineMaterials(
+                plugin.getSettings().overworldLookupMaterials(),
+                plugin.getSettings().netherLookupMaterials()
+        );
+    }
+
+    private List<Material> getDisplayMaterials(@Nullable World loadedWorld, boolean restrictWorld) {
+        if (loadedWorld != null) {
+            return plugin.getDisplayMaterials(loadedWorld.getEnvironment());
+        }
+        return combineMaterials(
+                plugin.getSettings().overworldDisplayMaterials(),
+                plugin.getSettings().netherDisplayMaterials()
+        );
+    }
+
+    private List<Material> getEffectiveLookupMaterials(CommandSender sender, List<Material> allLookupMaterials, boolean showAllColumns) {
+        if (showAllColumns || sender instanceof Player || !plugin.getSettings().consoleHighValueOnly()) {
+            return allLookupMaterials;
+        }
+
+        final Set<Material> allowed = new LinkedHashSet<>();
+        for (Material material : plugin.getSettings().consoleHighValueDisplayMaterials()) {
+            allowed.add(PlayerStatsComparator.normalize(material));
+        }
+
+        final List<Material> filtered = allLookupMaterials.stream()
+                .filter(material -> allowed.contains(PlayerStatsComparator.normalize(material)))
+                .distinct()
+                .toList();
+        return filtered.isEmpty() ? allLookupMaterials : filtered;
+    }
+
+    private List<Material> getEffectiveDisplayMaterials(CommandSender sender, List<Material> allDisplayMaterials, boolean showAllColumns) {
+        if (showAllColumns || sender instanceof Player || !plugin.getSettings().consoleHighValueOnly()) {
+            return allDisplayMaterials;
+        }
+
+        final Set<Material> allowed = new LinkedHashSet<>();
+        for (Material material : plugin.getSettings().consoleHighValueDisplayMaterials()) {
+            allowed.add(PlayerStatsComparator.normalize(material));
+        }
+
+        final List<Material> filtered = allDisplayMaterials.stream()
+                .map(PlayerStatsComparator::normalize)
+                .distinct()
+                .filter(allowed::contains)
+                .toList();
+        return filtered.isEmpty() ? allDisplayMaterials : filtered;
+    }
+
+    private String getViewLabel(
+            CommandSender sender,
+            boolean showAllColumns,
+            List<Material> displayMaterials,
+            List<Material> allDisplayMaterials
+    ) {
+        if (showAllColumns || sender instanceof Player || displayMaterials.equals(allDisplayMaterials)) {
+            return "all tracked";
+        }
+        return "high-value";
     }
 
     private List<Material> combineMaterials(List<Material> primary, List<Material> secondary) {
         final Set<Material> combined = new LinkedHashSet<>(primary);
         combined.addAll(secondary);
         return List.copyOf(combined);
+    }
+
+    private @Nullable ParsedLookupRequest parseLookupRequest(CommandSender sender, String @NonNull ... args) {
+        String timeArgument = plugin.getSettings().defaultLookupTime();
+        long requestedMillis = TimeUtil.millisFromString(timeArgument);
+        @Nullable String rawWorldName = null;
+        boolean sawExplicitTime = false;
+        boolean allTime = false;
+        boolean explicitAllWorlds = false;
+        boolean showAllColumns = false;
+
+        for (String arg : args) {
+            if (arg == null || arg.isBlank()) {
+                continue;
+            }
+            if (OPTION_ALL.equalsIgnoreCase(arg)) {
+                showAllColumns = true;
+                continue;
+            }
+            if (isAllTimeToken(arg) && !sawExplicitTime) {
+                timeArgument = TOKEN_ALLTIME;
+                requestedMillis = Long.MAX_VALUE;
+                sawExplicitTime = true;
+                allTime = true;
+                continue;
+            }
+
+            final long parsedMillis = TimeUtil.millisFromString(arg);
+            if (parsedMillis > 0 && !sawExplicitTime) {
+                timeArgument = arg;
+                requestedMillis = parsedMillis;
+                sawExplicitTime = true;
+                continue;
+            }
+
+            if (isAllWorldsToken(arg) && rawWorldName == null) {
+                explicitAllWorlds = true;
+                continue;
+            }
+
+            if (rawWorldName == null) {
+                rawWorldName = arg;
+                continue;
+            }
+
+            sender.sendMessage("§cUsage: §f/xrayhunter lookup [time|alltime] [world|allworlds] [-all]");
+            return null;
+        }
+
+        final @Nullable String resolvedWorldName = rawWorldName == null ? null : resolveWorldName(sender, rawWorldName);
+        if (rawWorldName != null && resolvedWorldName == null) {
+            return null;
+        }
+
+        return new ParsedLookupRequest(
+                timeArgument,
+                requestedMillis,
+                allTime,
+                resolvedWorldName,
+                explicitAllWorlds,
+                showAllColumns
+        );
     }
 
     private @Nullable String resolveWorldName(CommandSender sender, String rawWorldName) {
@@ -129,148 +347,84 @@ public final class LookupCommand {
             }
         }
 
-        sender.sendMessage("§cThat world is not loaded on this server: §f" + rawWorldName);
-        if (!plugin.getServer().getWorlds().isEmpty()) {
-            sender.sendMessage("§7Loaded worlds: §f" + worldNameList());
+        final @Nullable String databaseWorldName = CoreProtectDatabaseLookup.resolveKnownWorldName(rawWorldName);
+        if (databaseWorldName != null) {
+            return databaseWorldName;
+        }
+
+        sender.sendMessage("§cThat world was not found in loaded worlds or CoreProtect: §f" + rawWorldName);
+        final List<String> suggestions = getWorldNameSuggestions();
+        if (!suggestions.isEmpty()) {
+            sender.sendMessage("§7Known worlds: §f" + String.join("§7, §f", suggestions));
         }
         return null;
     }
 
-    private String worldNameList() {
-        return plugin.getServer().getWorlds().stream()
+    private void sendNoActivityMessage(
+            CommandSender sender,
+            @Nullable String lookupWorldName,
+            boolean allTime,
+            long requestedMillis,
+            long latestTrackedTimeSeconds
+    ) {
+        if (lookupWorldName != null) {
+            sender.sendMessage("§eNo suspicious activity within that time frame in §f" + lookupWorldName + "§e.");
+        } else if (allTime) {
+            sender.sendMessage("§eNo suspicious activity found across the full CoreProtect archive.");
+        } else {
+            sender.sendMessage("§eNo suspicious activity within that time frame across all CoreProtect worlds.");
+        }
+
+        if (latestTrackedTimeSeconds <= 0) {
+            return;
+        }
+
+        sender.sendMessage("§7Latest tracked block data: §f" + formatTimestamp(latestTrackedTimeSeconds));
+        if (allTime) {
+            return;
+        }
+
+        final long latestTrackedMillis = latestTrackedTimeSeconds * 1000L;
+        if (latestTrackedMillis < System.currentTimeMillis() - requestedMillis) {
+            sender.sendMessage("§7This database is older than that lookup window from the current server time.");
+            sender.sendMessage("§7Try at least §f" + TimeUtil.millisAsString(System.currentTimeMillis() - latestTrackedMillis) + "§7.");
+            if (!(sender instanceof Player) && lookupWorldName == null) {
+                sender.sendMessage("§7Likely active database worlds here include §fwild§7, §fgeneral§7, §foneblock§7, and §fskyblock§7.");
+            }
+        }
+    }
+
+    private boolean isAllTimeToken(String token) {
+        return TOKEN_ALLTIME.equalsIgnoreCase(token);
+    }
+
+    private boolean isAllWorldsToken(String token) {
+        return TOKEN_ALLWORLDS.equalsIgnoreCase(token);
+    }
+
+    private String formatTimestamp(long epochSeconds) {
+        return DATE_TIME_FORMATTER.format(Instant.ofEpochSecond(epochSeconds).atZone(ZoneId.systemDefault()));
+    }
+
+    public List<String> getWorldNameSuggestions() {
+        final Set<String> suggestions = new LinkedHashSet<>();
+        plugin.getServer().getWorlds().stream()
                 .map(World::getName)
                 .sorted(String.CASE_INSENSITIVE_ORDER)
-                .reduce((left, right) -> left + "§7, §f" + right)
-                .orElse("none");
+                .forEach(suggestions::add);
+        final List<String> knownDatabaseWorlds = new ArrayList<>(CoreProtectDatabaseLookup.getKnownWorldNames());
+        knownDatabaseWorlds.sort(String.CASE_INSENSITIVE_ORDER);
+        suggestions.addAll(knownDatabaseWorlds);
+        return List.copyOf(suggestions);
     }
 
-    private @Nullable Location buildLookupLocation(@Nullable World targetWorld, @Nullable Player player) {
-        if (player != null && (targetWorld == null || targetWorld.equals(player.getWorld()))) {
-            return player.getLocation();
-        }
-        if (targetWorld != null) {
-            return new Location(targetWorld, WORLD_LOOKUP_ANCHOR_X, WORLD_LOOKUP_ANCHOR_Y, WORLD_LOOKUP_ANCHOR_Z);
-        }
-        return null;
-    }
-
-    private static void updateMap(Map<Material, Integer> blockCount, Material blockId) {
-        final Material normalized = PlayerStatsComparator.normalize(blockId);
-        blockCount.put(normalized, blockCount.getOrDefault(normalized, 0) + 1);
-    }
-
-    private static @NonNull String getBlockKey(CoreProtectAPI.@NonNull ParseResult parse) {
-        return parse.worldName() + ":" + parse.getX() + "," + parse.getY() + "," + parse.getZ();
-    }
-
-    private final class LookupCallback extends Callback {
-        private final CommandSender sender;
-        private final @Nullable String worldName;
-        private final List<Material> displayMaterials;
-
-        private LookupCallback(CommandSender sender, @Nullable String worldName, List<Material> displayMaterials) {
-            this.sender = sender;
-            this.worldName = worldName;
-            this.displayMaterials = List.copyOf(displayMaterials);
-        }
-
-        @Override
-        public void run() {
-            final List<String[]> result = getData();
-            if (result == null || result.isEmpty()) {
-                sendNoActivityMessage(sender);
-                return;
-            }
-
-            final CoreProtectAPI coreProtectApi = XRayHunter.getCoreProtectAPI();
-            if (coreProtectApi == null) {
-                sender.sendMessage("§cCoreProtect is not currently hooked.");
-                return;
-            }
-
-            final Map<String, Map<Material, Integer>> playerCount = new HashMap<>();
-            final Map<String, List<CoreProtectAPI.ParseResult>> dataMap = new HashMap<>();
-            final Map<String, Boolean> userPlacedBlocks = new HashMap<>();
-
-            Collections.reverse(result);
-            for (String[] line : result) {
-                final CoreProtectAPI.ParseResult parse = coreProtectApi.parseResult(line);
-                final int actionId = parse.getActionId();
-                final String blockKey = getBlockKey(parse);
-                if (actionId == CoreProtectHandler.ACTION_PLACE) {
-                    userPlacedBlocks.put(blockKey, Boolean.TRUE);
-                    continue;
-                }
-
-                if (actionId != CoreProtectHandler.ACTION_BREAK || userPlacedBlocks.containsKey(blockKey)) {
-                    continue;
-                }
-
-                final String playerName = parse.getPlayer();
-                if (worldName != null && (parse.worldName() == null || !parse.worldName().equalsIgnoreCase(worldName))) {
-                    continue;
-                }
-                final Material blockType = parse.getType();
-                playerCount.computeIfAbsent(playerName, ignored -> new HashMap<>());
-                dataMap.computeIfAbsent(playerName, ignored -> new ArrayList<>());
-                updateMap(playerCount.get(playerName), blockType);
-                dataMap.get(playerName).add(parse);
-            }
-
-            final List<PlayerStats> topPlayers = new ArrayList<>();
-            for (String playerName : playerCount.keySet()) {
-                topPlayers.add(new PlayerStats(playerName, playerCount.get(playerName)));
-            }
-
-            if (topPlayers.isEmpty()) {
-                sendNoActivityMessage(sender);
-                return;
-            }
-
-            topPlayers.sort(new PlayerStatsComparator(displayMaterials));
-            HuntSession.getSession(sender).setLookupCache(topPlayers).setUserData(dataMap);
-
-            final StringBuilder builder = new StringBuilder("Listing");
-            if (worldName != null) {
-                builder.append(" §7(").append(worldName).append(")");
-            } else if (!(sender instanceof Player)) {
-                builder.append(" §7(all worlds)");
-            }
-            for (Material material : displayMaterials) {
-                builder.append(PlayerStatsComparator.getColor(material))
-                        .append("§l ")
-                        .append(PlayerStatsComparator.getShortLabel(material));
-            }
-            builder.append("\n");
-
-            int place = 1;
-            final int maxResults = Math.min(topPlayers.size(), plugin.getSettings().topResults());
-            for (PlayerStats stats : topPlayers.subList(0, maxResults)) {
-                builder.append(MessageFormat.format("§7#{0}", place));
-                for (Material material : displayMaterials) {
-                    builder.append(PlayerStatsComparator.getColor(material))
-                            .append(MessageFormat.format(" §l{0,number,##}§7({1,number,##}%)",
-                                    stats.getCount(material),
-                                    100 * stats.getRatio(material)));
-                }
-                builder.append(" §9").append(stats.getPlayer()).append("\n");
-                place++;
-            }
-
-            sender.sendMessage(builder.toString().split("\n"));
-        }
-
-        private void sendNoActivityMessage(CommandSender sender) {
-            if (sender instanceof Player player) {
-                sender.sendMessage(MessageFormat.format(
-                        "No suspicious activity within that time frame in {0}!",
-                        worldName != null ? worldName : player.getWorld().getName()
-                ));
-            } else if (worldName != null) {
-                sender.sendMessage("No suspicious activity within that time frame in " + worldName + "!");
-            } else {
-                sender.sendMessage("No suspicious activity within that time frame across any world.");
-            }
-        }
+    private record ParsedLookupRequest(
+            String timeArgument,
+            long requestedMillis,
+            boolean allTime,
+            @Nullable String lookupWorldName,
+            boolean explicitAllWorlds,
+            boolean showAllColumns
+    ) {
     }
 }

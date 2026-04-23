@@ -4,6 +4,7 @@ import dk.lockfuglsang.util.TimeUtil;
 import dk.lockfuglsang.xrayhunter.BuildInfo;
 import dk.lockfuglsang.xrayhunter.PluginSettings;
 import dk.lockfuglsang.xrayhunter.XRayHunter;
+import dk.lockfuglsang.xrayhunter.coreprotect.CoreProtectDatabaseLookup;
 import dk.lockfuglsang.xrayhunter.model.HuntSession;
 import java.io.File;
 import java.text.MessageFormat;
@@ -11,6 +12,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
+import org.bukkit.Material;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
@@ -26,7 +28,8 @@ public class MainCommand implements CommandExecutor, TabCompleter {
     private static final String PERMISSION_ADMIN = "xrayhunter.admin";
     private static final String LEGACY_PERMISSION_USE = "xhunt.use";
     private static final String LEGACY_PERMISSION_ADMIN = "xhunt.admin";
-    private static final List<String> DEBUG_SUBCOMMANDS = List.of("help", "permissions", "commands", "config", "set");
+    private static final List<String> DEBUG_SUBCOMMANDS = List.of("help", "permissions", "commands", "config", "set", "whitelist");
+    private static final List<String> DEBUG_WHITELIST_ACTIONS = List.of("list", "add", "remove");
 
     private final XRayHunter plugin;
     private final LookupCommand lookupCommand;
@@ -71,7 +74,7 @@ public class MainCommand implements CommandExecutor, TabCompleter {
             return teleportCommand.execute(sender, tail(args));
         }
 
-        if (TimeUtil.millisFromString(args[0]) > 0) {
+        if (lookupCommand.isTimeToken(args[0])) {
             return lookupCommand.execute(sender, args);
         }
 
@@ -109,19 +112,34 @@ public class MainCommand implements CommandExecutor, TabCompleter {
             if (args.length == 4 && isSubcommand(args[1], "set")) {
                 return filterSuggestions(getConfigValueSuggestions(args[2]), args[3]);
             }
+            if (args.length == 3 && isSubcommand(args[1], "whitelist")) {
+                final List<String> suggestions = new ArrayList<>(DEBUG_WHITELIST_ACTIONS);
+                suggestions.addAll(plugin.getSettings().excludedPlayers());
+                return filterSuggestions(suggestions, args[2]);
+            }
+            if (args.length == 4 && isSubcommand(args[1], "whitelist", "wl")) {
+                if (isSubcommand(args[2], "remove", "delete", "del")) {
+                    return filterSuggestions(plugin.getSettings().excludedPlayers(), args[3]);
+                }
+                return List.of();
+            }
             return List.of();
         }
 
         if (args.length == 2 && isSubcommand(args[0], "lookup", "l")) {
-            return filterSuggestions(List.of("2d", "7d", "30d", "90d"), args[1]);
+            return filterSuggestions(buildLookupSuggestions(), args[1]);
         }
 
-        if (args.length == 3 && isSubcommand(args[0], "lookup", "l")) {
-            return filterSuggestions(getWorldNameSuggestions(), args[2]);
+        if (args.length >= 3 && args.length <= 4 && isSubcommand(args[0], "lookup", "l")) {
+            return filterSuggestions(buildLookupSuggestions(), args[args.length - 1]);
         }
 
-        if (args.length == 2 && TimeUtil.millisFromString(args[0]) > 0) {
-            return filterSuggestions(getWorldNameSuggestions(), args[1]);
+        if (args.length == 2 && lookupCommand.isTimeToken(args[0])) {
+            return filterSuggestions(buildLookupSuggestions(), args[1]);
+        }
+
+        if (args.length == 3 && lookupCommand.isTimeToken(args[0])) {
+            return filterSuggestions(buildLookupSuggestions(), args[2]);
         }
 
         if (args.length == 2 && isSubcommand(args[0], "detail", "d")) {
@@ -139,8 +157,8 @@ public class MainCommand implements CommandExecutor, TabCompleter {
         final BuildInfo buildInfo = plugin.getBuildInfo();
         sender.sendMessage("§6# §e1MB-XRayHunter Commands");
         sender.sendMessage("§f/xrayhunter help §7- Show this command summary.");
-        sender.sendMessage("§f/xrayhunter lookup [time] [world] §7- Scan CoreProtect block breaks in one world, or all worlds from console within the safe limit.");
-        sender.sendMessage("§f/xrayhunter <time> §7- Shortcut for the same lookup command.");
+        sender.sendMessage("§f/xrayhunter lookup [time|alltime] [world|allworlds] [-all] §7- Scan CoreProtect block breaks in one world or across all worlds, including database-only worlds.");
+        sender.sendMessage("§f/xrayhunter <time|alltime> §7- Shortcut for the same lookup command.");
         sender.sendMessage("§f/xrayhunter detail <index|player> [page] §7- Show cached vein details for one lookup result in chat or console.");
         sender.sendMessage("§f/xrayhunter teleport <index> §7- Teleport to one cached vein location.");
         sender.sendMessage("§7Default lookup time: §f" + plugin.getSettings().defaultLookupTime());
@@ -151,7 +169,10 @@ public class MainCommand implements CommandExecutor, TabCompleter {
                 buildInfo.coreProtectTarget(),
                 buildInfo.javaTarget()
         ));
-        sender.sendMessage("§7Console all-world limit: §f" + plugin.getSettings().consoleMaxAllWorldLookupTime());
+        sender.sendMessage("§7Console implicit all-world limit: §f" + plugin.getSettings().consoleMaxAllWorldLookupTime());
+        sender.sendMessage("§7Explicit archive scan: §f/xrayhunter lookup alltime allworlds");
+        sender.sendMessage("§7Console compact view: §f" + (plugin.getSettings().consoleHighValueOnly() ? "high-value only §7(use §f-all§7 to expand)" : "all tracked columns"));
+        sender.sendMessage("§7Known CoreProtect worlds: §f" + Integer.toString(lookupCommand.getWorldNameSuggestions().size()));
         sender.sendMessage("§7Aliases: §fxhunt§7, §fxr");
         if (hasAdminPermission(sender)) {
             sender.sendMessage("§f/xrayhunter debug §7- Show plugin and CoreProtect status details.");
@@ -160,6 +181,7 @@ public class MainCommand implements CommandExecutor, TabCompleter {
             sender.sendMessage("§f/xrayhunter debug commands §7- List commands and examples.");
             sender.sendMessage("§f/xrayhunter debug config §7- Show active config values and tracked material lists.");
             sender.sendMessage("§f/xrayhunter debug set <key> <value> §7- Save a supported config value and reload it.");
+            sender.sendMessage("§f/xrayhunter debug whitelist <player> §7- Add a vetted player to filters.excluded-players and reload.");
             sender.sendMessage("§f/xrayhunter reload §7- Reload config.yml.");
         }
         return true;
@@ -207,6 +229,10 @@ public class MainCommand implements CommandExecutor, TabCompleter {
             return true;
         }
 
+        if (isSubcommand(args[1], "whitelist", "wl")) {
+            return handleDebugWhitelist(sender, args);
+        }
+
         if (isSubcommand(args[1], "set")) {
             return handleDebugSet(sender, args);
         }
@@ -242,7 +268,19 @@ public class MainCommand implements CommandExecutor, TabCompleter {
             sender.sendMessage(cleanMetaLine("CoreProtect data folder", coreProtectPlugin.getDataFolder().getAbsolutePath()));
         }
         sender.sendMessage(cleanMetaLine("CoreProtect database", databaseFile == null ? "unavailable" : databaseFile.getAbsolutePath()));
+        sender.sendMessage(cleanMetaLine("Latest tracked block data", formatTrackedTimestamp(CoreProtectDatabaseLookup.safeLatestTrackedTime(
+                mergeMaterials(
+                        plugin.getSettings().overworldLookupMaterials(),
+                        plugin.getSettings().netherLookupMaterials()
+                )
+        ))));
+        sender.sendMessage(cleanMetaLine("Console high-value-only", Boolean.toString(plugin.getSettings().consoleHighValueOnly())));
+        sender.sendMessage(cleanMetaLine("Excluded players", plugin.getSettings().excludedPlayers().isEmpty() ? "none" : Integer.toString(plugin.getSettings().excludedPlayers().size())));
+        sender.sendMessage(cleanMetaLine("Known CoreProtect worlds", Integer.toString(lookupCommand.getWorldNameSuggestions().size())));
         sender.sendMessage(cleanMetaLine("Cached hunt sessions", Integer.toString(HuntSession.getSessionCount())));
+        sender.sendMessage(cleanMetaLine("Summary cache entries", Integer.toString(CoreProtectDatabaseLookup.getSummaryCacheSize())));
+        sender.sendMessage(cleanMetaLine("Summary cache hits", Long.toString(CoreProtectDatabaseLookup.getSummaryCacheHitCount())));
+        sender.sendMessage(cleanMetaLine("Summary cache misses", Long.toString(CoreProtectDatabaseLookup.getSummaryCacheMissCount())));
         sender.sendMessage(cleanMetaLine("Default lookup time", plugin.getSettings().defaultLookupTime()));
         sender.sendMessage(cleanMetaLine("Top results", Integer.toString(plugin.getSettings().topResults())));
         sender.sendMessage(cleanMetaLine("Detail page size", Integer.toString(plugin.getSettings().detailPageSize())));
@@ -256,6 +294,7 @@ public class MainCommand implements CommandExecutor, TabCompleter {
         sender.sendMessage("§f/xrayhunter debug commands §7- Show commands and examples.");
         sender.sendMessage("§f/xrayhunter debug config §7- Show active config values and tracked materials.");
         sender.sendMessage("§f/xrayhunter debug set <key> <value> §7- Save a supported config value and reload.");
+        sender.sendMessage("§f/xrayhunter debug whitelist [player|list|add|remove] §7- Manage filters.excluded-players and reload.");
     }
 
     private void sendDebugPermissions(CommandSender sender) {
@@ -269,8 +308,8 @@ public class MainCommand implements CommandExecutor, TabCompleter {
     private void sendDebugCommands(CommandSender sender) {
         sender.sendMessage("§6# §e1MB-XRayHunter Commands");
         sender.sendMessage("§f/xrayhunter help");
-        sender.sendMessage("§f/xrayhunter lookup [time] [world]");
-        sender.sendMessage("§f/xrayhunter <time>");
+        sender.sendMessage("§f/xrayhunter lookup [time|alltime] [world|allworlds] [-all]");
+        sender.sendMessage("§f/xrayhunter <time|alltime>");
         sender.sendMessage("§f/xrayhunter detail <index|player> [page]");
         sender.sendMessage("§f/xrayhunter teleport <index>");
         sender.sendMessage("§f/xrayhunter debug");
@@ -279,16 +318,27 @@ public class MainCommand implements CommandExecutor, TabCompleter {
         sender.sendMessage("§f/xrayhunter debug commands");
         sender.sendMessage("§f/xrayhunter debug config");
         sender.sendMessage("§f/xrayhunter debug set <key> <value>");
+        sender.sendMessage("§f/xrayhunter debug whitelist <player>");
+        sender.sendMessage("§f/xrayhunter debug whitelist list");
+        sender.sendMessage("§f/xrayhunter debug whitelist remove <player>");
         sender.sendMessage("§f/xrayhunter reload");
         sender.sendMessage("§7Examples:");
         sender.sendMessage("§f/xrayhunter 7d");
         sender.sendMessage("§f/xrayhunter lookup 30d");
         sender.sendMessage("§f/xrayhunter lookup 7d §7(console = all worlds within safe limit)");
-        sender.sendMessage("§f/xrayhunter lookup 1000d spawn §7(console = one world)");
+        sender.sendMessage("§f/xrayhunter lookup 30d -all §7(console = widen compact report for one query)");
+        sender.sendMessage("§f/xrayhunter lookup alltime allworlds §7(console = explicit full archive scan)");
+        sender.sendMessage("§f/xrayhunter lookup 365d allworlds §7(console = explicit large archive scan)");
+        sender.sendMessage("§f/xrayhunter lookup 120d wild §7(console = database world)");
+        sender.sendMessage("§f/xrayhunter lookup 120d wild -all §7(console = database world with every tracked column)");
+        sender.sendMessage("§f/xrayhunter lookup 1000d spawn §7(console = one loaded world)");
         sender.sendMessage("§f/xrayhunter detail 1");
         sender.sendMessage("§f/xrayhunter teleport 2");
         sender.sendMessage("§f/xrayhunter debug set display.top-results 15");
+        sender.sendMessage("§f/xrayhunter debug set console.high-value-only true");
         sender.sendMessage("§f/xrayhunter debug set console.max-all-world-lookup-time 7d");
+        sender.sendMessage("§f/xrayhunter debug whitelist fumblehead");
+        sender.sendMessage("§f/xrayhunter debug whitelist remove fumblehead");
     }
 
     private void sendDebugConfig(CommandSender sender) {
@@ -298,7 +348,16 @@ public class MainCommand implements CommandExecutor, TabCompleter {
         sender.sendMessage(cleanMetaLine("display.top-results", Integer.toString(plugin.getSettings().topResults())));
         sender.sendMessage(cleanMetaLine("display.detail-page-size", Integer.toString(plugin.getSettings().detailPageSize())));
         sender.sendMessage(cleanMetaLine("console.allow-server-wide-lookups", Boolean.toString(plugin.getSettings().consoleAllowServerWideLookups())));
+        sender.sendMessage(cleanMetaLine("console.high-value-only", Boolean.toString(plugin.getSettings().consoleHighValueOnly())));
         sender.sendMessage(cleanMetaLine("console.max-all-world-lookup-time", plugin.getSettings().consoleMaxAllWorldLookupTime()));
+        sender.sendMessage(cleanMetaLine(
+                "console.high-value-display-materials",
+                joinMaterials(plugin.getSettings().consoleHighValueDisplayMaterials())
+        ));
+        sender.sendMessage(cleanMetaLine(
+                "filters.excluded-players",
+                joinValues(plugin.getSettings().excludedPlayers())
+        ));
         sender.sendMessage(cleanMetaLine(
                 "tracking.overworld.lookup-materials",
                 joinMaterials(plugin.getSettings().overworldLookupMaterials())
@@ -344,12 +403,120 @@ public class MainCommand implements CommandExecutor, TabCompleter {
         return true;
     }
 
+    private boolean handleDebugWhitelist(CommandSender sender, String[] args) {
+        if (args.length == 2 || (args.length == 3 && isHelpToken(args[2]))) {
+            sendDebugWhitelistUsage(sender);
+            return true;
+        }
+
+        if (args.length == 3 && isSubcommand(args[2], "list")) {
+            sendWhitelistEntries(sender);
+            return true;
+        }
+
+        if (args.length == 3) {
+            return addWhitelistEntry(sender, args[2]);
+        }
+
+        if (args.length == 4 && isSubcommand(args[2], "add")) {
+            return addWhitelistEntry(sender, args[3]);
+        }
+
+        if (args.length == 4 && isSubcommand(args[2], "remove", "delete", "del")) {
+            return removeWhitelistEntry(sender, args[3]);
+        }
+
+        sender.sendMessage("§cUsage: §f/xrayhunter debug whitelist <player>");
+        sender.sendMessage("§7Also available: §f/xrayhunter debug whitelist list§7, §f... add <player>§7, §f... remove <player>");
+        return true;
+    }
+
+    private boolean addWhitelistEntry(CommandSender sender, String rawPlayerName) {
+        final @Nullable String playerName = normalizeWhitelistEntry(rawPlayerName);
+        if (playerName == null) {
+            sender.sendMessage("§cWhitelist entries must be a normal player name without spaces or a leading #.");
+            return true;
+        }
+
+        final List<String> excludedPlayers = new ArrayList<>(plugin.getSettings().excludedPlayers());
+        if (excludedPlayers.stream().anyMatch(playerName::equalsIgnoreCase)) {
+            sender.sendMessage("§e" + playerName + " is already in filters.excluded-players.");
+            return true;
+        }
+
+        excludedPlayers.add(playerName);
+        excludedPlayers.sort(String.CASE_INSENSITIVE_ORDER);
+        saveExcludedPlayers(excludedPlayers);
+        sender.sendMessage("§aAdded §f" + playerName + "§a to filters.excluded-players and reloaded the config.");
+        return true;
+    }
+
+    private boolean removeWhitelistEntry(CommandSender sender, String rawPlayerName) {
+        final @Nullable String playerName = normalizeWhitelistEntry(rawPlayerName);
+        if (playerName == null) {
+            sender.sendMessage("§cWhitelist entries must be a normal player name without spaces or a leading #.");
+            return true;
+        }
+
+        final List<String> excludedPlayers = new ArrayList<>(plugin.getSettings().excludedPlayers());
+        final boolean removed = excludedPlayers.removeIf(entry -> entry.equalsIgnoreCase(playerName));
+        if (!removed) {
+            sender.sendMessage("§e" + playerName + " is not currently in filters.excluded-players.");
+            return true;
+        }
+
+        excludedPlayers.sort(String.CASE_INSENSITIVE_ORDER);
+        saveExcludedPlayers(excludedPlayers);
+        sender.sendMessage("§aRemoved §f" + playerName + "§a from filters.excluded-players and reloaded the config.");
+        return true;
+    }
+
+    private void sendWhitelistEntries(CommandSender sender) {
+        final List<String> excludedPlayers = plugin.getSettings().excludedPlayers();
+        sender.sendMessage("§6# §e1MB-XRayHunter Whitelist");
+        sender.sendMessage("§7Config key: §ffilters.excluded-players");
+        sender.sendMessage("§7Pseudo-users with §f#§7 are ignored automatically and do not need to be listed.");
+        if (excludedPlayers.isEmpty()) {
+            sender.sendMessage("§7Entries: §fnone");
+            return;
+        }
+        sender.sendMessage("§7Entries (§f" + excludedPlayers.size() + "§7): §f" + String.join("§7, §f", excludedPlayers));
+    }
+
+    private void sendDebugWhitelistUsage(CommandSender sender) {
+        sender.sendMessage("§6# §e1MB-XRayHunter Whitelist");
+        sender.sendMessage("§f/xrayhunter debug whitelist <player> §7- Add a vetted player to filters.excluded-players.");
+        sender.sendMessage("§f/xrayhunter debug whitelist list §7- Show current whitelist entries.");
+        sender.sendMessage("§f/xrayhunter debug whitelist add <player> §7- Explicit add form.");
+        sender.sendMessage("§f/xrayhunter debug whitelist remove <player> §7- Remove a whitelist entry.");
+        sender.sendMessage("§7Pseudo-users with §f#§7 are ignored automatically and do not need to be added.");
+    }
+
+    private void saveExcludedPlayers(List<String> excludedPlayers) {
+        plugin.getConfig().set("filters.excluded-players", excludedPlayers);
+        plugin.saveConfig();
+        plugin.reloadPluginConfiguration();
+    }
+
+    private @Nullable String normalizeWhitelistEntry(String rawPlayerName) {
+        if (rawPlayerName == null || rawPlayerName.isBlank()) {
+            return null;
+        }
+
+        final String normalized = rawPlayerName.trim().toLowerCase(Locale.ROOT);
+        if (normalized.startsWith("#") || normalized.contains(" ")) {
+            return null;
+        }
+        return normalized;
+    }
+
     private @Nullable Object parseConfigValue(String key, String value) {
         return switch (key.toLowerCase(Locale.ROOT)) {
             case "startup.self-check-enabled" -> parseBoolean(value);
             case "defaults.lookup-time" -> TimeUtil.millisFromString(value) > 0 ? value : null;
             case "display.top-results", "display.detail-page-size" -> parsePositiveInteger(value);
             case "console.allow-server-wide-lookups" -> parseBoolean(value);
+            case "console.high-value-only" -> parseBoolean(value);
             case "console.max-all-world-lookup-time" -> TimeUtil.millisFromString(value) > 0 ? value : null;
             default -> null;
         };
@@ -414,26 +581,51 @@ public class MainCommand implements CommandExecutor, TabCompleter {
             case "display.top-results" -> List.of("5", "10", "15", "20");
             case "display.detail-page-size" -> List.of("5", "10", "15", "20");
             case "console.allow-server-wide-lookups" -> List.of("true", "false");
+            case "console.high-value-only" -> List.of("true", "false");
             case "console.max-all-world-lookup-time" -> List.of("1d", "7d", "30d");
             default -> List.of();
         };
     }
 
-    private List<String> getWorldNameSuggestions() {
-        return plugin.getServer().getWorlds().stream()
-                .map(world -> world.getName())
-                .sorted(String.CASE_INSENSITIVE_ORDER)
-                .toList();
+    private List<String> buildLookupSuggestions() {
+        final List<String> suggestions = new ArrayList<>(List.of("2d", "7d", "30d", "90d", "365d", "alltime", "allworlds", "-all"));
+        suggestions.addAll(lookupCommand.getWorldNameSuggestions());
+        return suggestions;
     }
 
     private String cleanMetaLine(String label, String value) {
         return "§7" + label + ": §f" + value;
     }
 
+    private String formatTrackedTimestamp(long epochSeconds) {
+        if (epochSeconds <= 0) {
+            return "unknown";
+        }
+        return java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss z")
+                .format(java.time.Instant.ofEpochSecond(epochSeconds).atZone(java.time.ZoneId.systemDefault()));
+    }
+
+    private List<Material> mergeMaterials(List<Material> primary, List<Material> secondary) {
+        final List<Material> merged = new ArrayList<>(primary);
+        for (Material value : secondary) {
+            if (!merged.contains(value)) {
+                merged.add(value);
+            }
+        }
+        return merged;
+    }
+
     private String joinMaterials(List<?> materials) {
         return materials.stream()
                 .map(Object::toString)
                 .map(value -> value.toLowerCase(Locale.ROOT))
+                .reduce((left, right) -> left + ", " + right)
+                .orElse("none");
+    }
+
+    private String joinValues(List<?> values) {
+        return values.stream()
+                .map(Object::toString)
                 .reduce((left, right) -> left + ", " + right)
                 .orElse("none");
     }

@@ -3,14 +3,15 @@ package dk.lockfuglsang.xrayhunter.command;
 import dk.lockfuglsang.util.LocationUtil;
 import dk.lockfuglsang.util.TimeUtil;
 import dk.lockfuglsang.xrayhunter.XRayHunter;
+import dk.lockfuglsang.xrayhunter.coreprotect.CoreProtectDatabaseLookup;
+import dk.lockfuglsang.xrayhunter.coreprotect.PlayerVeinLookupResult;
 import dk.lockfuglsang.xrayhunter.model.HuntSession;
+import dk.lockfuglsang.xrayhunter.model.LookupContext;
 import dk.lockfuglsang.xrayhunter.model.OreVein;
 import dk.lockfuglsang.xrayhunter.model.PlayerStats;
 import dk.lockfuglsang.xrayhunter.model.PlayerStatsComparator;
-import dk.lockfuglsang.xrayhunter.model.VeinLocator;
 import java.text.MessageFormat;
 import java.util.List;
-import net.coreprotect.CoreProtectAPI;
 import org.bukkit.command.CommandSender;
 import org.jspecify.annotations.NonNull;
 
@@ -60,15 +61,22 @@ public final class DetailCommand {
     }
 
     private void showDetails(CommandSender sender, @NonNull PlayerStats playerStats, @NonNull HuntSession session, int page) {
-        final List<CoreProtectAPI.ParseResult> data = session.getUserData(playerStats.getPlayer());
-        if (data.isEmpty()) {
-            sender.sendMessage(MessageFormat.format("§cNo data found for player {0}. Try running lookup again.", playerStats.getPlayer()));
+        final LookupContext lookupContext = session.getLookupContext();
+        if (lookupContext == null) {
+            sender.sendMessage(MessageFormat.format("§cNo lookup context found for {0}. Try running lookup again.", playerStats.getPlayer()));
             return;
         }
 
-        final List<OreVein> veins = VeinLocator.getVeins(data);
-        session.setVeins(veins);
-        showVeins(sender, playerStats, veins, page);
+        session.setVeins(null);
+        sender.sendMessage(MessageFormat.format("§7Loading cached detail data for §f{0}§7...", playerStats.getPlayer()));
+        CoreProtectDatabaseLookup.performPlayerVeinLookup(plugin, lookupContext, playerStats.getPlayer(), result -> {
+            if (result.hasError()) {
+                sender.sendMessage("§c" + result.errorMessage());
+                return;
+            }
+            session.setVeins(result.veins());
+            showVeins(sender, playerStats, result.veins(), page);
+        });
     }
 
     private void showVeins(CommandSender sender, @NonNull PlayerStats playerStats, @NonNull List<OreVein> veins, int page) {

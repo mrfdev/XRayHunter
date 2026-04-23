@@ -19,8 +19,11 @@ public record PluginSettings(
         int topResults,
         int detailPageSize,
         boolean consoleAllowServerWideLookups,
+        boolean consoleHighValueOnly,
         String consoleMaxAllWorldLookupTime,
         long consoleMaxAllWorldLookupMillis,
+        List<Material> consoleHighValueDisplayMaterials,
+        List<String> excludedPlayers,
         List<Material> overworldLookupMaterials,
         List<Material> overworldDisplayMaterials,
         List<Material> netherLookupMaterials,
@@ -32,7 +35,19 @@ public record PluginSettings(
             "display.top-results",
             "display.detail-page-size",
             "console.allow-server-wide-lookups",
+            "console.high-value-only",
             "console.max-all-world-lookup-time"
+    );
+
+    private static final List<Material> DEFAULT_CONSOLE_HIGH_VALUE_DISPLAY_MATERIALS = List.of(
+            Material.ANCIENT_DEBRIS,
+            Material.DIAMOND_ORE,
+            Material.EMERALD_ORE,
+            Material.GOLD_ORE,
+            Material.GILDED_BLACKSTONE,
+            Material.NETHER_GOLD_ORE,
+            Material.LAPIS_ORE,
+            Material.REDSTONE_ORE
     );
 
     private static final List<Material> DEFAULT_OVERWORLD_LOOKUP_MATERIALS = List.of(
@@ -97,8 +112,11 @@ public record PluginSettings(
                 Math.max(1, configuration.getInt("display.top-results", 10)),
                 Math.max(1, configuration.getInt("display.detail-page-size", 10)),
                 configuration.getBoolean("console.allow-server-wide-lookups", true),
+                configuration.getBoolean("console.high-value-only", true),
                 consoleMaxLookupTime,
                 TimeUtil.millisFromString(consoleMaxLookupTime),
+                parseMaterialList(plugin, configuration, "console.high-value-display-materials", DEFAULT_CONSOLE_HIGH_VALUE_DISPLAY_MATERIALS),
+                parsePlayerList(configuration, "filters.excluded-players"),
                 parseMaterialList(plugin, configuration, "tracking.overworld.lookup-materials", DEFAULT_OVERWORLD_LOOKUP_MATERIALS),
                 parseMaterialList(plugin, configuration, "tracking.overworld.display-materials", DEFAULT_OVERWORLD_DISPLAY_MATERIALS),
                 parseMaterialList(plugin, configuration, "tracking.nether.lookup-materials", DEFAULT_NETHER_LOOKUP_MATERIALS),
@@ -154,5 +172,21 @@ public record PluginSettings(
         }
 
         return List.copyOf(new ArrayList<>(materials));
+    }
+
+    private static List<String> parsePlayerList(FileConfiguration configuration, String path) {
+        final List<String> configuredNames = configuration.getStringList(path);
+        if (configuredNames.isEmpty()) {
+            return List.of();
+        }
+
+        final Set<String> players = new LinkedHashSet<>();
+        for (String configuredName : configuredNames) {
+            if (configuredName == null || configuredName.isBlank()) {
+                continue;
+            }
+            players.add(configuredName.trim().toLowerCase(Locale.ROOT));
+        }
+        return List.copyOf(new ArrayList<>(players));
     }
 }

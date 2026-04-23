@@ -4,21 +4,22 @@ version: @version@
 api-version: @targetBukkitApiVersion@
 authors: [R4zorax, mrfloris]
 depend: [CoreProtect]
-description: CoreProtect 23.4 add-on for suspicious mining stats on Paper 26.1.2.
+description: CoreProtect 23.4 add-on for suspicious mining stats across loaded and database-only worlds on Paper 26.1.2.
 prefix: XRayHunter
 commands:
   xrayhunter:
     aliases: [xhunt, xr]
     usage: |
       /xrayhunter help
-      /xrayhunter lookup [time] [world]
-      /xrayhunter <time>
+      /xrayhunter lookup [time|alltime] [world|allworlds] [-all]
+      /xrayhunter <time|alltime>
       /xrayhunter detail <index|player> [page]
       /xrayhunter teleport <index>
       /xrayhunter debug [help|permissions|commands|config]
       /xrayhunter debug set <key> <value>
+      /xrayhunter debug whitelist <player|list|add|remove>
       /xrayhunter reload
-    description: Inspect CoreProtect mining data, cached details, and debug/config info.
+    description: Inspect CoreProtect mining data from loaded and archived worlds, plus cached details and debug/config info.
 
 permissions:
   xrayhunter.use:

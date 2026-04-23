@@ -2,7 +2,6 @@ package dk.lockfuglsang.xrayhunter.model;
 
 import java.util.ArrayList;
 import java.util.List;
-import net.coreprotect.CoreProtectAPI;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -15,12 +14,12 @@ import org.jspecify.annotations.NonNull;
 public class OreVein {
     private static final int MAX_DISTANCE = 5;
     private final Material type;
-    private final List<CoreProtectAPI.ParseResult> find = new ArrayList<>();
+    private final List<TrackedBlockEvent> find = new ArrayList<>();
     private int time;
     private String worldName;
 
-    public OreVein(CoreProtectAPI.@NonNull ParseResult ore) {
-        type = ore.getType();
+    public OreVein(@NonNull TrackedBlockEvent ore) {
+        type = ore.type();
         add(ore);
     }
 
@@ -30,9 +29,9 @@ public class OreVein {
      * @param ore
      */
     @SuppressWarnings("deprecation")
-    public void add(CoreProtectAPI.ParseResult ore) {
+    public void add(TrackedBlockEvent ore) {
         if (find.isEmpty()) {
-            time = ore.getTime();
+            time = ore.timeSeconds();
             worldName = ore.worldName();
             find.add(ore);
         } else if (isValid(ore)) {
@@ -46,12 +45,14 @@ public class OreVein {
      * @param ore
      * @return
      */
-    public boolean isValid(CoreProtectAPI.ParseResult ore) {
+    public boolean isValid(TrackedBlockEvent ore) {
         if (worldName != null && worldName.equalsIgnoreCase(ore.worldName())) {
-            final Location loc = new Location(Bukkit.getWorld(ore.worldName()), ore.getX(), ore.getY(), ore.getZ());
-            if (loc.distance(getLocation()) <= MAX_DISTANCE) {
-                return ore.getType() == type;
-            }
+            final Location loc = ore.location();
+            final Location current = getLocation();
+            final double dx = loc.getX() - current.getX();
+            final double dy = loc.getY() - current.getY();
+            final double dz = loc.getZ() - current.getZ();
+            return (dx * dx) + (dy * dy) + (dz * dz) <= (MAX_DISTANCE * MAX_DISTANCE) && ore.type() == type;
         }
         return false;
     }
@@ -60,10 +61,10 @@ public class OreVein {
         double x = 0;
         double y = 0;
         double z = 0;
-        for (final CoreProtectAPI.ParseResult r : find) {
-            x += r.getX();
-            y += r.getY();
-            z += r.getZ();
+        for (final TrackedBlockEvent r : find) {
+            x += r.x();
+            y += r.y();
+            z += r.z();
         }
         final double n = getSize();
         return new Location(Bukkit.getWorld(worldName), x / n, y / n, z / n);

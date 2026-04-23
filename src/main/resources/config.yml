@@ -37,12 +37,38 @@ console:
   # Command: /xrayhunter debug set console.allow-server-wide-lookups true
   allow-server-wide-lookups: true
 
+  # Keep console lookup tables narrower by default and only show the curated high-value columns.
+  # Compact mode narrows both the lookup scope and the displayed columns for console archive scans.
+  # Use -all on a lookup to include lower-value/base materials again and show every tracked display column.
+  #
+  # Used by: /xrayhunter lookup [time] [world], /xrayhunter <time>
+  # Command: /xrayhunter debug set console.high-value-only true
+  high-value-only: true
+
   # Maximum time window allowed for all-world console lookups when no world is specified.
   # Longer console lookups must provide a world name to avoid giant CoreProtect result sets.
   #
   # Used by: /xrayhunter lookup [time] from console
   # Command: /xrayhunter debug set console.max-all-world-lookup-time 30d
   max-all-world-lookup-time: 30d
+
+  # Materials used by the compact high-value console view and compact archive lookup scope.
+  high-value-display-materials:
+    - ancient_debris
+    - diamond_ore
+    - emerald_ore
+    - gold_ore
+    - gilded_blackstone
+    - nether_gold_ore
+    - lapis_ore
+    - redstone_ore
+
+# Operator filters.
+filters:
+  # Players listed here are excluded from lookup result rankings.
+  # Handy for long-time vetted staff or trusted miners who would otherwise dominate top lists.
+  # CoreProtect pseudo-users whose names start with # are always ignored automatically.
+  excluded-players: []
 
 # Tracked materials.
 tracking:

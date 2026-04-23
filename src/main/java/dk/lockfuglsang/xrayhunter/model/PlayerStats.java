@@ -10,10 +10,15 @@ import org.jspecify.annotations.NonNull;
  */
 public class PlayerStats {
     private final String player;
-    private final float total;
+    private final int total;
+    private final int comparisonTotal;
     private final Map<Material, Integer> blockCount = new HashMap<>();
 
     public PlayerStats(String player, @NonNull Map<Material, Integer> map) {
+        this(player, map, -1);
+    }
+
+    public PlayerStats(String player, @NonNull Map<Material, Integer> map, int comparisonTotal) {
         this.player = player;
         int sum = 0;
         for (Map.Entry<Material, Integer> entry : map.entrySet()) {
@@ -22,6 +27,7 @@ public class PlayerStats {
             sum += val;
         }
         total = sum;
+        this.comparisonTotal = comparisonTotal > 0 ? Math.max(sum, comparisonTotal) : sum;
     }
 
     public String getPlayer() {
@@ -35,7 +41,15 @@ public class PlayerStats {
         return 0;
     }
 
+    public int getTotal() {
+        return total;
+    }
+
+    public int getComparisonTotal() {
+        return comparisonTotal;
+    }
+
     public float getRatio(Material mat) {
-        return total == 0 ? 0.0F : getCount(mat) / total;
+        return comparisonTotal == 0 ? 0.0F : getCount(mat) / (float) comparisonTotal;
     }
 }

@@ -4,8 +4,8 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import net.coreprotect.CoreProtectAPI;
 import org.bukkit.command.CommandSender;
+import org.jspecify.annotations.Nullable;
 import org.jspecify.annotations.NonNull;
 
 /**
@@ -23,8 +23,8 @@ public class HuntSession {
      */
     private List<PlayerStats> lookupCache = Collections.emptyList();
     private PlayerStats currentStat;
-    private Map<String, List<CoreProtectAPI.ParseResult>> userData;
-    private List<OreVein> veins;
+    private @Nullable LookupContext lookupContext;
+    private @Nullable List<OreVein> veins;
 
     private HuntSession() {
         activity = System.currentTimeMillis();
@@ -54,6 +54,7 @@ public class HuntSession {
     public HuntSession setLookupCache(List<PlayerStats> lookupCache) {
         activity = System.currentTimeMillis();
         this.lookupCache = lookupCache;
+        this.lookupContext = null;
         this.currentStat = null;
         this.veins = null;
         return this;
@@ -80,23 +81,23 @@ public class HuntSession {
         return null;
     }
 
-    public List<CoreProtectAPI.ParseResult> getUserData(String player) {
+    public @Nullable LookupContext getLookupContext() {
         activity = System.currentTimeMillis();
-        return userData != null && userData.containsKey(player) ? userData.get(player) : Collections.emptyList();
+        return lookupContext;
     }
 
-    public void setUserData(Map<String, List<CoreProtectAPI.ParseResult>> userData) {
+    public void setLookupContext(@Nullable LookupContext lookupContext) {
         activity = System.currentTimeMillis();
-        this.userData = userData;
+        this.lookupContext = lookupContext;
         this.veins = null;
     }
 
-    public List<OreVein> getVeins() {
+    public @Nullable List<OreVein> getVeins() {
         activity = System.currentTimeMillis();
         return veins;
     }
 
-    public void setVeins(List<OreVein> veins) {
+    public void setVeins(@Nullable List<OreVein> veins) {
         activity = System.currentTimeMillis();
         this.veins = veins;
     }

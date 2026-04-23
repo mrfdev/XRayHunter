@@ -5,6 +5,8 @@ import java.io.File;
 import java.text.MessageFormat;
 import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import net.coreprotect.CoreProtect;
 import net.coreprotect.CoreProtectAPI;
 import org.bukkit.Material;
@@ -22,6 +24,7 @@ public class XRayHunter extends JavaPlugin {
 
     private BuildInfo buildInfo;
     private PluginSettings settings;
+    private ExecutorService lookupExecutor;
 
     public static @Nullable CoreProtectAPI getCoreProtectAPI() {
         return api;
@@ -30,6 +33,11 @@ public class XRayHunter extends JavaPlugin {
     @Override
     public void onEnable() {
         buildInfo = BuildInfo.load(this);
+        lookupExecutor = Executors.newSingleThreadExecutor(runnable -> {
+            final Thread thread = new Thread(runnable, "1MB-XRayHunter-Lookup");
+            thread.setDaemon(true);
+            return thread;
+        });
         saveDefaultConfig();
         reloadPluginConfiguration();
 
@@ -53,16 +61,28 @@ public class XRayHunter extends JavaPlugin {
 
     @Override
     public void onDisable() {
+        if (lookupExecutor != null) {
+            lookupExecutor.shutdownNow();
+            lookupExecutor = null;
+        }
         api = null;
     }
 
     public void reloadPluginConfiguration() {
         reloadConfig();
         settings = PluginSettings.load(this);
+        dk.lockfuglsang.xrayhunter.coreprotect.CoreProtectDatabaseLookup.clearCaches();
     }
 
     public BuildInfo getBuildInfo() {
         return buildInfo;
+    }
+
+    public void runLookupTaskAsync(Runnable task) {
+        if (lookupExecutor == null || lookupExecutor.isShutdown()) {
+            return;
+        }
+        lookupExecutor.execute(task);
     }
 
     public PluginSettings getSettings() {
@@ -120,6 +140,7 @@ public class XRayHunter extends JavaPlugin {
                 Integer.toString(settings.topResults()),
                 Integer.toString(settings.detailPageSize())
         ));
+        getLogger().info("Excluded players: " + (settings.excludedPlayers().isEmpty() ? "none" : String.join(", ", settings.excludedPlayers())));
         getLogger().info("Overworld tracking: " + joinMaterials(settings.overworldDisplayMaterials()));
         getLogger().info("Nether tracking: " + joinMaterials(settings.netherDisplayMaterials()));
         if (databaseFile != null) {
