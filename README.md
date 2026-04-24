@@ -9,15 +9,15 @@ Recent lookup work is aimed at large archives too: wide console lookups now use 
 This repo is now aligned with the other 1MoreBlock plugins:
 
 - Java target: `25`
-- Paper target: `26.1.2`
-- Bukkit `api-version`: `1.21.11`
+- Paper API compile target: `26.1.2`
+- Declared plugin.yml `api-version` floor: `1.21.11`
 - CoreProtect target: `23.4` with API version `11`
 - Plugin data folder: `plugins/1MB-XRayHunter/`
 - Build output folder: `build/libs/`
 
 ## Requirements
 
-- Paper `26.1.2`
+- Paper `1.21.11` or `26.1.2`
 - Java `25`
 - CoreProtect `23.4`
 
@@ -139,10 +139,30 @@ Notes:
 - Successful jar builds increment `version.properties`.
 - Each successful build produces a new uniquely named jar in `build/libs/`, so older jars stay there unless you run `clean`.
 - The latest verified local build from this repo pass is:
-  `build/libs/1MB-XRayHunter-v2.0.0-029-j25-26.1.2.jar`
-- The next successful build will increment from build `029`.
-- When the local test server exists, Gradle compiles against `servers/Server-Two-Paper-26.1.2/plugins/CoreProtect-23.4b.jar` so the build matches the runtime CoreProtect jar exactly.
-- The local `servers/` folder is only for test servers and is ignored by Git.
+  `build/libs/1MB-XRayHunter-v2.0.0-031-j25-26.1.2.jar`
+- The next successful build will increment from build `031`.
+- Gradle compiles this project against Paper API `26.1.2` and keeps plugin.yml `api-version` at `1.21.11` so the same jar can load on both Paper `1.21.11` and Paper `26.1.2`.
+- Gradle uses an ignored local compile-support copy of the shared CoreProtect jar at `.gradle/compile-support/CoreProtect-23.4b.jar`.
+- Refresh that compile-support jar from `/Users/floris/Projects/Codex/servers/shared-plugins/CoreProtect-23.4b.jar` if it is missing.
+- This project no longer relies on a repo-local `servers/` folder. If one exists locally, it stays ignored by Git and is not part of the supported test workflow.
+
+## Testing
+
+Use the centralized shared runner in foreground mode:
+
+```bash
+/Users/floris/Projects/Codex/servers/run-test-server --paper 1.21.11 --plugin build/libs/1MB-XRayHunter-v<jar>.jar --foreground
+/Users/floris/Projects/Codex/servers/run-test-server --paper 26.1.2 --plugin build/libs/1MB-XRayHunter-v<jar>.jar --foreground
+```
+
+The intended verification flow is:
+
+- confirm the plugin enables cleanly
+- run `xrayhunter help`
+- run `xrayhunter debug`
+- run `xrayhunter debug config`
+- run `xrayhunter lookup 2d`
+- stop the foreground server cleanly before moving to the next Paper version
 
 ## Credits
 

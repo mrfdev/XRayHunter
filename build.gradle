@@ -1,4 +1,5 @@
 import org.apache.tools.ant.filters.ReplaceTokens
+import org.gradle.api.GradleException
 
 plugins {
     id 'java'
@@ -6,12 +7,24 @@ plugins {
 
 def pluginName = '1MB-XRayHunter'
 def javaTarget = 25
-def targetPaperVersion = '26.1.2'
-def targetPaperApiBuild = '19'
-def targetBukkitApiVersion = '1.21.11'
+def paperApiCompileTarget = '26.1.2'
+def paperApiCompileBuild = '20'
+def pluginApiCompatibilityFloor = '1.21.11'
 def targetCoreProtectVersion = '23.4'
-// CoreProtect 23.4 is validated against the local server jar when it is present in this repo.
-def localCoreProtectJar = file('servers/Server-Two-Paper-26.1.2/plugins/CoreProtect-23.4b.jar')
+def localCompileSupportRoot = file('.gradle/compile-support')
+def localCoreProtectJar = new File(localCompileSupportRoot, 'CoreProtect-23.4b.jar')
+def centralizedPaperTestServerRoot = file('/Users/floris/Projects/Codex/servers')
+// Prefer an ignored local compile-cache copy first because some Gradle/sandbox combinations cannot
+// inspect the centralized cache path directly during dependency resolution.
+// This project must not depend on a repo-local /servers/ folder.
+def sharedCoreProtectJarCandidates = [
+        localCoreProtectJar,
+        new File(centralizedPaperTestServerRoot, 'cache/Paper-26.1.2/plugins/CoreProtect-23.4b.jar'),
+        new File(centralizedPaperTestServerRoot, 'cache/Paper-1.21.11/plugins/CoreProtect-23.4b.jar')
+]
+def sharedCoreProtectJar = sharedCoreProtectJarCandidates.find { candidate ->
+    candidate.isFile() && candidate.canRead()
+}
 def versionPropertiesFile = file('version.properties')
 def versionProperties = new Properties()
 if (versionPropertiesFile.exists()) {
@@ -23,7 +36,7 @@ def pluginVersion = versionProperties.getProperty('pluginVersion', '2.0.0')
 def currentBuildNumber = Integer.parseInt(versionProperties.getProperty('buildNumber', '011'))
 def nextBuildNumber = currentBuildNumber + 1
 def buildNumber = String.format('%03d', nextBuildNumber)
-def pluginBuildVersion = "${pluginVersion}-${buildNumber}-j${javaTarget}-${targetPaperVersion}"
+def pluginBuildVersion = "${pluginVersion}-${buildNumber}-j${javaTarget}-${paperApiCompileTarget}"
 
 group = 'dk.lockfuglsang'
 version = pluginBuildVersion
@@ -45,12 +58,13 @@ repositories {
 }
 
 dependencies {
-    compileOnly("io.papermc.paper:paper-api:${targetPaperVersion}.build.${targetPaperApiBuild}-alpha")
+    compileOnly("io.papermc.paper:paper-api:${paperApiCompileTarget}.build.${paperApiCompileBuild}-alpha")
     compileOnly("org.jspecify:jspecify:1.0.0")
-    if (localCoreProtectJar.exists()) {
-        compileOnly(files(localCoreProtectJar))
+    if (sharedCoreProtectJar != null) {
+        logger.lifecycle("Using shared CoreProtect compile jar: ${sharedCoreProtectJar}")
+        compileOnly(files(sharedCoreProtectJar.absoluteFile))
     } else {
-        compileOnly("net.coreprotect:coreprotect:${targetCoreProtectVersion}")
+        throw new GradleException("Shared CoreProtect compile jar was not found. Expected one of: ${sharedCoreProtectJarCandidates*.absolutePath.join(', ')}")
     }
 }
 
@@ -61,8 +75,8 @@ processResources {
             buildNumber             : buildNumber.toString(),
             version                 : version.toString(),
             javaTarget              : javaTarget.toString(),
-            targetPaperVersion      : targetPaperVersion.toString(),
-            targetBukkitApiVersion  : targetBukkitApiVersion.toString(),
+            paperApiCompileTarget   : paperApiCompileTarget.toString(),
+            pluginApiCompatibilityFloor: pluginApiCompatibilityFloor.toString(),
             targetCoreProtectVersion: targetCoreProtectVersion.toString()
     ])
     filteringCharset = 'UTF-8'
@@ -73,8 +87,8 @@ processResources {
                 buildNumber             : buildNumber.toString(),
                 version                 : version.toString(),
                 javaTarget              : javaTarget.toString(),
-                targetPaperVersion      : targetPaperVersion.toString(),
-                targetBukkitApiVersion  : targetBukkitApiVersion.toString(),
+                paperApiCompileTarget   : paperApiCompileTarget.toString(),
+                pluginApiCompatibilityFloor: pluginApiCompatibilityFloor.toString(),
                 targetCoreProtectVersion: targetCoreProtectVersion.toString()
         ]
     }

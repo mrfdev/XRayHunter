@@ -14,8 +14,8 @@ public record BuildInfo(
         String buildNumber,
         String fullVersion,
         String javaTarget,
-        String paperTarget,
-        String bukkitApiVersion,
+        String paperApiCompileTarget,
+        String pluginApiCompatibilityFloor,
         String coreProtectTarget
 ) {
     public static BuildInfo load(JavaPlugin plugin) {
@@ -28,16 +28,22 @@ public record BuildInfo(
             plugin.getLogger().warning("Unable to read build-info.properties: " + exception.getMessage());
         }
 
-        final String pluginMetaVersion = plugin.getPluginMeta().getVersion();
+        final var pluginMeta = plugin.getPluginMeta();
+        final String pluginMetaVersion = pluginMeta.getVersion();
+        final String pluginMetaApiVersion = fallbackIfBlank(pluginMeta.getAPIVersion(), "unknown");
         return new BuildInfo(
-                properties.getProperty("plugin-name", plugin.getName()),
+                properties.getProperty("plugin-name", pluginMeta.getName()),
                 properties.getProperty("plugin-version", pluginMetaVersion),
                 properties.getProperty("build-number", "unknown"),
                 properties.getProperty("full-version", pluginMetaVersion),
                 properties.getProperty("java-target", "unknown"),
-                properties.getProperty("paper-target", "unknown"),
-                properties.getProperty("bukkit-api-version", "unknown"),
+                properties.getProperty("paper-api-compile-target", "unknown"),
+                properties.getProperty("plugin-api-compatibility-floor", pluginMetaApiVersion),
                 properties.getProperty("coreprotect-target", "unknown")
         );
+    }
+
+    private static String fallbackIfBlank(String value, String fallback) {
+        return value == null || value.isBlank() ? fallback : value;
     }
 }

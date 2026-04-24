@@ -121,12 +121,12 @@ public class XRayHunter extends JavaPlugin {
     private void runStartupSelfCheck() {
         final @Nullable File databaseFile = getCoreProtectDatabaseFile();
         getLogger().info(MessageFormat.format(
-                "Loaded {0} v{1} (build {2}) for Paper {3} / Bukkit API {4}.",
+                "Loaded {0} v{1} (build {2}) compiled against Paper API {3} and declaring plugin api-version floor {4}.",
                 buildInfo.pluginName(),
                 buildInfo.pluginVersion(),
                 buildInfo.buildNumber(),
-                buildInfo.paperTarget(),
-                buildInfo.bukkitApiVersion()
+                buildInfo.paperApiCompileTarget(),
+                buildInfo.pluginApiCompatibilityFloor()
         ));
         getLogger().info(MessageFormat.format(
                 "CoreProtect hooked: {0} (plugin {1}, API {2}).",
