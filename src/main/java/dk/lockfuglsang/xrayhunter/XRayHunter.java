@@ -44,7 +44,7 @@ public class XRayHunter extends JavaPlugin {
         api = getCoreProtect();
         if (api == null) {
             getLogger().severe("CoreProtect was not found or did not expose a supported API version.");
-            getLogger().severe("This add-on requires CoreProtect API version 11 (CoreProtect 23.4 target).");
+            getLogger().severe("This add-on requires CoreProtect API version 11 or 12 (CoreProtect 24.0-dev1 target).");
             getServer().getPluginManager().disablePlugin(this);
             return;
         }
@@ -160,7 +160,7 @@ public class XRayHunter extends JavaPlugin {
         }
 
         return switch (coreProtectApi.APIVersion()) {
-            case 7, 8, 9, 10, 11 -> coreProtectApi;
+            case 7, 8, 9, 10, 11, 12 -> coreProtectApi;
             default -> null;
         };
     }

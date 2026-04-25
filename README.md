@@ -11,7 +11,7 @@ This repo is now aligned with the other 1MoreBlock plugins:
 - Java target: `25`
 - Paper API compile target: `26.1.2`
 - Declared plugin.yml `api-version` floor: `1.21.11`
-- CoreProtect target: `23.4` with API version `11`
+- CoreProtect target: `24.0-dev1` with API version `12`
 - Plugin data folder: `plugins/1MB-XRayHunter/`
 - Build output folder: `build/libs/`
 
@@ -19,7 +19,7 @@ This repo is now aligned with the other 1MoreBlock plugins:
 
 - Paper `1.21.11` or `26.1.2`
 - Java `25`
-- CoreProtect `23.4`
+- CoreProtect `24.0-dev1`
 
 ## Commands
 
@@ -139,11 +139,11 @@ Notes:
 - Successful jar builds increment `version.properties`.
 - Each successful build produces a new uniquely named jar in `build/libs/`, so older jars stay there unless you run `clean`.
 - The latest verified local build from this repo pass is:
-  `build/libs/1MB-XRayHunter-v2.0.0-031-j25-26.1.2.jar`
-- The next successful build will increment from build `031`.
+  `build/libs/1MB-XRayHunter-v2.0.0-032-j25-26.1.2.jar`
+- The next successful build will increment from build `032`.
 - Gradle compiles this project against Paper API `26.1.2` and keeps plugin.yml `api-version` at `1.21.11` so the same jar can load on both Paper `1.21.11` and Paper `26.1.2`.
-- Gradle uses an ignored local compile-support copy of the shared CoreProtect jar at `.gradle/compile-support/CoreProtect-23.4b.jar`.
-- Refresh that compile-support jar from `/Users/floris/Projects/Codex/servers/shared-plugins/CoreProtect-23.4b.jar` if it is missing.
+- Gradle prefers CoreProtect `24.0-dev1` from `.gradle/compile-support/CoreProtect-24.0-dev1.jar`, then the centralized Paper cache jars, and only falls back to Maven `23.4` if the dev jar is unavailable.
+- Refresh that compile-support jar from `/Users/floris/Projects/Codex/servers/cache/Paper-26.1.2/plugins/CoreProtect-24.0-dev1.jar` if it is missing.
 - This project no longer relies on a repo-local `servers/` folder. If one exists locally, it stays ignored by Git and is not part of the supported test workflow.
 
 ## Testing

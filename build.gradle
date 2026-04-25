@@ -1,5 +1,4 @@
 import org.apache.tools.ant.filters.ReplaceTokens
-import org.gradle.api.GradleException
 
 plugins {
     id 'java'
@@ -10,17 +9,18 @@ def javaTarget = 25
 def paperApiCompileTarget = '26.1.2'
 def paperApiCompileBuild = '20'
 def pluginApiCompatibilityFloor = '1.21.11'
-def targetCoreProtectVersion = '23.4'
+def targetCoreProtectVersion = '24.0-dev1'
+def fallbackCoreProtectVersion = '23.4'
 def localCompileSupportRoot = file('.gradle/compile-support')
-def localCoreProtectJar = new File(localCompileSupportRoot, 'CoreProtect-23.4b.jar')
+def localCoreProtectJar = new File(localCompileSupportRoot, 'CoreProtect-24.0-dev1.jar')
 def centralizedPaperTestServerRoot = file('/Users/floris/Projects/Codex/servers')
 // Prefer an ignored local compile-cache copy first because some Gradle/sandbox combinations cannot
 // inspect the centralized cache path directly during dependency resolution.
 // This project must not depend on a repo-local /servers/ folder.
 def sharedCoreProtectJarCandidates = [
         localCoreProtectJar,
-        new File(centralizedPaperTestServerRoot, 'cache/Paper-26.1.2/plugins/CoreProtect-23.4b.jar'),
-        new File(centralizedPaperTestServerRoot, 'cache/Paper-1.21.11/plugins/CoreProtect-23.4b.jar')
+        new File(centralizedPaperTestServerRoot, 'cache/Paper-26.1.2/plugins/CoreProtect-24.0-dev1.jar'),
+        new File(centralizedPaperTestServerRoot, 'cache/Paper-1.21.11/plugins/CoreProtect-24.0-dev1.jar')
 ]
 def sharedCoreProtectJar = sharedCoreProtectJarCandidates.find { candidate ->
     candidate.isFile() && candidate.canRead()
@@ -64,7 +64,8 @@ dependencies {
         logger.lifecycle("Using shared CoreProtect compile jar: ${sharedCoreProtectJar}")
         compileOnly(files(sharedCoreProtectJar.absoluteFile))
     } else {
-        throw new GradleException("Shared CoreProtect compile jar was not found. Expected one of: ${sharedCoreProtectJarCandidates*.absolutePath.join(', ')}")
+        logger.lifecycle("Shared CoreProtect 24 compile jar not found, falling back to Maven CoreProtect ${fallbackCoreProtectVersion} for local build resilience.")
+        compileOnly("net.coreprotect:coreprotect:${fallbackCoreProtectVersion}")
     }
 }
 
