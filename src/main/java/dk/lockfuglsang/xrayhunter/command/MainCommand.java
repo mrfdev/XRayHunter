@@ -396,8 +396,8 @@ public class MainCommand implements CommandExecutor, TabCompleter {
             return true;
         }
 
-        plugin.getConfig().set(key, parsedValue);
-        plugin.saveConfig();
+        plugin.getPluginConfiguration().set(key, parsedValue);
+        plugin.savePluginConfiguration();
         plugin.reloadPluginConfiguration();
         sender.sendMessage("§aSaved §f" + key + "§a = §f" + value + "§a and reloaded the config.");
         return true;
@@ -493,8 +493,8 @@ public class MainCommand implements CommandExecutor, TabCompleter {
     }
 
     private void saveExcludedPlayers(List<String> excludedPlayers) {
-        plugin.getConfig().set("filters.excluded-players", excludedPlayers);
-        plugin.saveConfig();
+        plugin.getPluginConfiguration().set("filters.excluded-players", excludedPlayers);
+        plugin.savePluginConfiguration();
         plugin.reloadPluginConfiguration();
     }
 

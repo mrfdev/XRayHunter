@@ -139,8 +139,8 @@ Notes:
 - Successful jar builds increment `version.properties`.
 - Each successful build produces a new uniquely named jar in `build/libs/`, so older jars stay there unless you run `clean`.
 - The latest verified local build from this repo pass is:
-  `build/libs/1MB-XRayHunter-v2.0.0-032-j25-26.1.2.jar`
-- The next successful build will increment from build `032`.
+  `build/libs/1MB-XRayHunter-v2.0.0-035-j25-26.1.2.jar`
+- The next successful build will increment from build `035`.
 - Gradle compiles this project against Paper API `26.1.2` and keeps plugin.yml `api-version` at `1.21.11` so the same jar can load on both Paper `1.21.11` and Paper `26.1.2`.
 - Gradle prefers CoreProtect `24.0-dev1` from `.gradle/compile-support/CoreProtect-24.0-dev1.jar`, then the centralized Paper cache jars, and only falls back to Maven `23.4` if the dev jar is unavailable.
 - Refresh that compile-support jar from `/Users/floris/Projects/Codex/servers/cache/Paper-26.1.2/plugins/CoreProtect-24.0-dev1.jar` if it is missing.

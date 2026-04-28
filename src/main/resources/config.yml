@@ -1,58 +1,72 @@
-# Startup behavior.
+# Controls startup-only behavior.
 startup:
-  # Log a short self-check summary when the plugin enables.
-  #
-  # Used by: server startup
-  # Command: /xrayhunter debug set startup.self-check-enabled <true|false>
+  # Controls whether the plugin prints a short self-check summary when it enables.
+  # Default: true
+  # Expected values: true or false
+  # Reload behavior: manual file edits take effect after /xrayhunter reload or the next server start.
+  # Command edits: /xrayhunter debug set startup.self-check-enabled <true|false> saves and reloads immediately.
   self-check-enabled: true
 
-# Shared lookup defaults.
+# Shared defaults used when a command does not supply its own override.
 defaults:
-  # Default lookup window when /xrayhunter lookup runs without a [time] argument.
-  #
-  # Used by: /xrayhunter lookup [time], /xrayhunter <time>
-  # Command: /xrayhunter debug set defaults.lookup-time 7d
+  # Controls the default lookup window when /xrayhunter lookup runs without a [time] argument.
+  # Default: 2d
+  # Expected format: positive duration such as 30m, 12h, 2d, 7d, 30d, 365d
+  # Safe values: keep it reasonably small if you want fast default lookups on large CoreProtect databases.
+  # Reload behavior: manual file edits take effect after /xrayhunter reload or the next server start.
+  # Command edits: /xrayhunter debug set defaults.lookup-time <duration> saves and reloads immediately.
   lookup-time: 2d
 
-# Shared display settings.
+# Shared display settings for lookup and detail output.
 display:
-  # Maximum number of players shown in the initial lookup result list.
-  #
-  # Used by: /xrayhunter lookup [time], /xrayhunter <time>
-  # Command: /xrayhunter debug set display.top-results 15
+  # Controls how many players are shown in the first lookup results table.
+  # Default: 10
+  # Expected values: positive whole numbers
+  # Safe values: 5-20 is typical; larger values can make console output wide and noisy.
+  # Reload behavior: manual file edits take effect after /xrayhunter reload or the next server start.
+  # Command edits: /xrayhunter debug set display.top-results <number> saves and reloads immediately.
   top-results: 10
 
-  # Number of vein rows shown on each detail page.
-  #
-  # Used by: /xrayhunter detail <index|player> [page]
-  # Command: /xrayhunter debug set display.detail-page-size 10
+  # Controls how many vein rows are shown on each /xrayhunter detail page.
+  # Default: 10
+  # Expected values: positive whole numbers
+  # Safe values: 5-20 is typical; larger values create longer chat/console pages.
+  # Reload behavior: manual file edits take effect after /xrayhunter reload or the next server start.
+  # Command edits: /xrayhunter debug set display.detail-page-size <number> saves and reloads immediately.
   detail-page-size: 10
 
-# Console safety settings.
+# Console-only safety and formatting settings.
 console:
-  # Allow console lookups without a world argument.
-  # These scan across every loaded world and can be expensive on large CoreProtect databases.
-  #
-  # Used by: /xrayhunter lookup [time] from console
-  # Command: /xrayhunter debug set console.allow-server-wide-lookups true
+  # Controls whether console lookups are allowed without naming a world.
+  # Default: true
+  # Expected values: true or false
+  # When false, console users must supply a world name and cannot run implicit all-world lookups.
+  # Reload behavior: manual file edits take effect after /xrayhunter reload or the next server start.
+  # Command edits: /xrayhunter debug set console.allow-server-wide-lookups <true|false> saves and reloads immediately.
   allow-server-wide-lookups: true
 
-  # Keep console lookup tables narrower by default and only show the curated high-value columns.
-  # Compact mode narrows both the lookup scope and the displayed columns for console archive scans.
-  # Use -all on a lookup to include lower-value/base materials again and show every tracked display column.
-  #
-  # Used by: /xrayhunter lookup [time] [world], /xrayhunter <time>
-  # Command: /xrayhunter debug set console.high-value-only true
+  # Controls whether console lookups default to the narrower high-value-only report and query scope.
+  # Default: true
+  # Expected values: true or false
+  # When true, console lookups use the curated list below unless the user adds -all to a command.
+  # Reload behavior: manual file edits take effect after /xrayhunter reload or the next server start.
+  # Command edits: /xrayhunter debug set console.high-value-only <true|false> saves and reloads immediately.
   high-value-only: true
 
-  # Maximum time window allowed for all-world console lookups when no world is specified.
-  # Longer console lookups must provide a world name to avoid giant CoreProtect result sets.
-  #
-  # Used by: /xrayhunter lookup [time] from console
-  # Command: /xrayhunter debug set console.max-all-world-lookup-time 30d
+  # Controls the maximum all-world console time window when no world argument is supplied.
+  # Default: 30d
+  # Expected format: positive duration such as 1d, 7d, 30d, 90d
+  # Safe values: keep this conservative on large CoreProtect archives to avoid expensive accidental scans.
+  # Reload behavior: manual file edits take effect after /xrayhunter reload or the next server start.
+  # Command edits: /xrayhunter debug set console.max-all-world-lookup-time <duration> saves and reloads immediately.
   max-all-world-lookup-time: 30d
 
-  # Materials used by the compact high-value console view and compact archive lookup scope.
+  # Controls which materials count as "high value" for compact console lookups and compact console tables.
+  # Default: the eight material names listed below
+  # Expected values: valid Bukkit/Paper Material names; case does not matter; duplicates are ignored.
+  # Invalid entries are skipped with a warning and the plugin falls back to the bundled defaults if nothing valid remains.
+  # Reload behavior: manual file edits take effect after /xrayhunter reload or the next server start.
+  # Command edits: there is no direct list editor command yet; edit the file and then reload.
   high-value-display-materials:
     - ancient_debris
     - diamond_ore
@@ -63,19 +77,28 @@ console:
     - lapis_ore
     - redstone_ore
 
-# Operator filters.
+# Optional operator-maintained filters.
 filters:
-  # Players listed here are excluded from lookup result rankings.
-  # Handy for long-time vetted staff or trusted miners who would otherwise dominate top lists.
-  # CoreProtect pseudo-users whose names start with # are always ignored automatically.
+  # Controls which player names are excluded from ranking output.
+  # Default: [] (no excluded players)
+  # Expected values: plain player names without spaces; case is normalized; pseudo-users starting with # are ignored automatically.
+  # Use this for long-time vetted players or staff accounts that should not keep appearing in top lists.
+  # Reload behavior: manual file edits take effect after /xrayhunter reload or the next server start.
+  # Command edits: /xrayhunter debug whitelist <player|list|add|remove> saves and reloads immediately.
   excluded-players: []
 
-# Tracked materials.
+# Tracked block groups used for lookups and summary display.
 tracking:
+  # Overworld-specific tracking rules.
   overworld:
-    # Full lookup material list. Deepslate variants are normalized back to their base ore in reports.
-    # Raw iron and raw copper are intentionally included.
-    # Raw gold block is intentionally not tracked here.
+    # Controls which overworld materials are queried from CoreProtect.
+    # Default: the bundled ore/base block list shown below
+    # Expected values: valid Bukkit/Paper Material names; case does not matter; duplicates are ignored.
+    # Deepslate variants are normalized back into their base ore rows in the summary display.
+    # Raw iron and raw copper are intentionally included. Raw gold block is intentionally not tracked.
+    # Invalid entries are skipped with a warning and the plugin falls back to the bundled defaults if nothing valid remains.
+    # Reload behavior: manual file edits take effect after /xrayhunter reload or the next server start.
+    # Command edits: there is no direct list editor command yet; edit the file and then reload.
     lookup-materials:
       - diamond_ore
       - deepslate_diamond_ore
@@ -98,7 +121,12 @@ tracking:
       - stone
       - deepslate
 
-    # Display order for the overworld lookup summary.
+    # Controls the displayed overworld summary column order after lookup-material normalization has happened.
+    # Default: the condensed material order shown below
+    # Expected values: valid Bukkit/Paper Material names; case does not matter; duplicates are ignored.
+    # Safe values: keep this aligned with the lookup list so every visible column reflects a tracked material family.
+    # Reload behavior: manual file edits take effect after /xrayhunter reload or the next server start.
+    # Command edits: there is no direct list editor command yet; edit the file and then reload.
     display-materials:
       - diamond_ore
       - emerald_ore
@@ -112,8 +140,14 @@ tracking:
       - coal_ore
       - stone
 
+  # Nether-specific tracking rules.
   nether:
-    # Nether tracking includes ancient debris, gilded blackstone, and the main ore/base block rows.
+    # Controls which nether materials are queried from CoreProtect.
+    # Default: the bundled ancient debris / gilded blackstone / ore / base block list shown below
+    # Expected values: valid Bukkit/Paper Material names; case does not matter; duplicates are ignored.
+    # Invalid entries are skipped with a warning and the plugin falls back to the bundled defaults if nothing valid remains.
+    # Reload behavior: manual file edits take effect after /xrayhunter reload or the next server start.
+    # Command edits: there is no direct list editor command yet; edit the file and then reload.
     lookup-materials:
       - ancient_debris
       - gilded_blackstone
@@ -121,7 +155,12 @@ tracking:
       - nether_quartz_ore
       - netherrack
 
-    # Display order for the nether lookup summary.
+    # Controls the displayed nether summary column order.
+    # Default: the same five material names shown below
+    # Expected values: valid Bukkit/Paper Material names; case does not matter; duplicates are ignored.
+    # Safe values: keep this aligned with the lookup list so the summary output stays predictable.
+    # Reload behavior: manual file edits take effect after /xrayhunter reload or the next server start.
+    # Command edits: there is no direct list editor command yet; edit the file and then reload.
     display-materials:
       - ancient_debris
       - gilded_blackstone

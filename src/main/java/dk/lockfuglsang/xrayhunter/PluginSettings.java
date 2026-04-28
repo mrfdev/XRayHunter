@@ -103,8 +103,7 @@ public record PluginSettings(
             Material.NETHERRACK
     );
 
-    public static PluginSettings load(XRayHunter plugin) {
-        final FileConfiguration configuration = plugin.getConfig();
+    public static PluginSettings load(XRayHunter plugin, FileConfiguration configuration) {
         final String consoleMaxLookupTime = resolveConsoleMaxLookupTime(configuration.getString("console.max-all-world-lookup-time", "30d"));
         return new PluginSettings(
                 configuration.getBoolean("startup.self-check-enabled", true),

@@ -12,6 +12,7 @@ import net.coreprotect.CoreProtectAPI;
 import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.command.PluginCommand;
+import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.jspecify.annotations.Nullable;
@@ -23,6 +24,8 @@ public class XRayHunter extends JavaPlugin {
     private static @Nullable CoreProtectAPI api;
 
     private BuildInfo buildInfo;
+    private PluginConfigurationManager configurationManager;
+    private YamlConfiguration configuration;
     private PluginSettings settings;
     private ExecutorService lookupExecutor;
 
@@ -38,7 +41,7 @@ public class XRayHunter extends JavaPlugin {
             thread.setDaemon(true);
             return thread;
         });
-        saveDefaultConfig();
+        configurationManager = new PluginConfigurationManager(this, "config.yml");
         reloadPluginConfiguration();
 
         api = getCoreProtect();
@@ -69,9 +72,19 @@ public class XRayHunter extends JavaPlugin {
     }
 
     public void reloadPluginConfiguration() {
-        reloadConfig();
-        settings = PluginSettings.load(this);
+        configuration = configurationManager.reload();
+        settings = PluginSettings.load(this, configuration);
         dk.lockfuglsang.xrayhunter.coreprotect.CoreProtectDatabaseLookup.clearCaches();
+    }
+
+    public YamlConfiguration getPluginConfiguration() {
+        return configuration;
+    }
+
+    public void savePluginConfiguration() {
+        if (configuration != null) {
+            configurationManager.save(configuration);
+        }
     }
 
     public BuildInfo getBuildInfo() {
