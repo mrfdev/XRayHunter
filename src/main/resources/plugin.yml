@@ -11,6 +11,7 @@ commands:
     aliases: [xhunt, xr]
     usage: |
       /xrayhunter help
+      /xrayhunter info
       /xrayhunter lookup [time|alltime] [world|allworlds] [-all]
       /xrayhunter <time|alltime>
       /xrayhunter detail <index|player> [page]

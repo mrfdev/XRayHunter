@@ -1,0 +1,12 @@
+id: 1mb-xrayhunter
+name: 1MB-XRayHunter
+category: custom-server-plugin
+summary: Staff-facing CoreProtect add-on for suspicious mining lookups, cached ore detail review, and large-archive X-ray triage.
+main_command: /xrayhunter
+docs_url: https://docs.1moreblock.com/custom-server-plugins/1mb-xrayhunter/
+player_guide: player-guide.md
+technical_readme: ../README.md
+java_target: 25
+paper_target: 26.1.2
+official_project: true
+repository: mrfdev/XRayHunter

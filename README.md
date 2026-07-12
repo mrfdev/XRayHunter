@@ -1,28 +1,51 @@
 # 1MB-XRayHunter
 
-## Introduction
+1MB-XRayHunter is a standalone 1MoreBlock Paper plugin and CoreProtect add-on for reviewing suspicious mining patterns. It turns CoreProtect block-break history into ranked lookup reports, cached vein detail pages, and in-game teleport targets so staff can investigate potential X-ray abuse without digging through raw database data.
 
-1MB-XRayHunter is a lightweight CoreProtect add-on for Paper servers that helps staff spot suspicious mining patterns quickly.
-It reads CoreProtect block-break history, ranks the most suspicious miners in the current world or any archived CoreProtect world, and lets staff drill into cached vein details and teleport to those finds for manual review.
-Recent lookup work is aimed at large archives too: wide console lookups now use batched aggregate queries, a temporary in-memory summary cache, and lazy detail loading so huge CoreProtect databases are less likely to exhaust heap space.
+This repository is the technical source of truth for the plugin. Public-safe player and admin guides live under [`docs/`](docs/), and the canonical published page is intended to be:
 
-This repo is now aligned with the other 1MoreBlock plugins:
+- <https://docs.1moreblock.com/custom-server-plugins/1mb-xrayhunter/>
 
+## At A Glance
+
+- Main command: `/xrayhunter`
+- Public info entry point: `/xrayhunter info`
+- Paper compile target: `26.1.2`
+- Declared plugin compatibility floor: `1.21.11`
 - Java target: `25`
-- Paper API compile target: `26.1.2`
-- Declared plugin.yml `api-version` floor: `1.21.11`
-- CoreProtect target: `24.0-dev1` with API version `12`
+- Required dependency: CoreProtect
+- Maintained CoreProtect target: `24.0-dev1` with API `12`
 - Plugin data folder: `plugins/1MB-XRayHunter/`
 - Build output folder: `build/libs/`
 
-## Requirements
+## Features
 
-- Paper `1.21.11` or `26.1.2`
-- Java `25`
-- CoreProtect `24.0-dev1`
+- Suspicious-mining lookups across loaded worlds and CoreProtect database-only worlds
+- Explicit all-world archive scans for staff review sessions
+- Compact console reporting with a high-value-only mode enabled by default
+- Lazy player detail loading so large archive lookups do not keep every tracked event in memory
+- Cached vein detail pages and safe in-game teleport targets
+- Automatic filtering for invalid CoreProtect pseudo-users such as `#piston`
+- Operator-managed vetted-player exclusions through config and `/xrayhunter debug whitelist ...`
+- Startup self-check logging that reports build/runtime/CoreProtect status
+
+## Documentation
+
+- [Player Guide](docs/player-guide.md)
+- [Commands](docs/commands.md)
+- [Permissions](docs/permissions.md)
+- [Placeholders](docs/placeholders.md)
+- [Configuration](docs/configuration.md)
+- [Installation](docs/installation.md)
+- [Integrations](docs/integrations.md)
+- [Troubleshooting](docs/troubleshooting.md)
+- [Docs Manifest](docs/plugin-docs.yml)
 
 ## Commands
 
+Primary commands:
+
+- `/xrayhunter info`
 - `/xrayhunter help`
 - `/xrayhunter lookup [time|alltime] [world|allworlds] [-all]`
 - `/xrayhunter <time|alltime>`
@@ -44,128 +67,105 @@ Aliases:
 
 ## Permissions
 
-- `xrayhunter.use`: allows lookup, detail, and teleport.
-- `xrayhunter.admin`: allows debug pages, config updates, and reload.
-- `xhunt.use`: legacy alias for `xrayhunter.use`.
-- `xhunt.admin`: legacy alias for `xrayhunter.admin`.
+The plugin declares four permission nodes, all defaulting to `op`:
 
-## Placeholders
+- `xrayhunter.use`
+- `xrayhunter.admin`
+- `xhunt.use`
+- `xhunt.admin`
 
-This plugin does not register PlaceholderAPI placeholders yet.
+See [docs/permissions.md](docs/permissions.md) for the detailed matrix and inherited alias behavior.
 
-## Command Examples
+## Configuration Overview
 
-- `/xrayhunter 2d`
-- `/xrayhunter lookup 30d`
-- `/xrayhunter lookup 7d` from console for an all-world text report within the safe limit
-- `/xrayhunter lookup 7d -all` from console to widen one lookup back to the full tracked column set and include lower-value/base materials in the query too
-- `/xrayhunter lookup alltime allworlds` from console for an explicit full-archive scan across every CoreProtect world
-- `/xrayhunter lookup 365d allworlds` from console for a deliberately large batched archive scan
-- `/xrayhunter lookup 120d wild` from console for a database-world lookup that returns real historical results on the current 65 GB archive
-- `/xrayhunter lookup 120d wild -all` from console for the full-width version of that database-world report
-- `/xrayhunter lookup 1000d spawn` from console for a long single-world text report
-- `/xrayhunter detail 1`
-- `/xrayhunter detail Greymagic27 2`
-- `/xrayhunter teleport 3`
-- `/xrayhunter debug`
-- `/xrayhunter debug config`
-- `/xrayhunter debug set defaults.lookup-time 7d`
-- `/xrayhunter debug set display.top-results 15`
-- `/xrayhunter debug whitelist fumblehead`
-- `/xrayhunter debug whitelist list`
-- `/xrayhunter debug whitelist remove fumblehead`
+`config.yml` currently covers:
 
-## Config Notes
+- startup self-check behavior
+- default lookup window
+- top result and detail page sizing
+- console all-world safety limits
+- compact high-value-only console mode
+- vetted-player exclusions
+- overworld and nether tracking lists
 
-`config.yml` currently includes:
+Important config notes:
 
-- startup self-check toggle
-- default lookup time
-- top result count
-- detail page size
-- console all-world lookup safety settings
-- compact high-value-only console mode, enabled by default
-- excluded-player filter list for vetted usernames that should never show in rankings
-- `/xrayhunter debug whitelist ...` helpers to manage that excluded-player list without editing the file by hand
-- automatic filtering of invalid CoreProtect pseudo-users such as `#piston`
-- stale archive hints when the database is older than the requested lookup window
-- batched aggregate lookups plus a temporary summary cache for large archive scans
-- tracked overworld and nether material lists
+- command-driven config edits are currently limited to the scalar keys exposed by `/xrayhunter debug set`
+- whitelist management writes directly to `filters.excluded-players`
+- deepslate ore variants are tracked in lookup-material lists and normalized back into their base ore rows for summary display
+- `raw_iron_block` and `raw_copper_block` are tracked
+- `raw_gold_block` is intentionally not tracked
 
-Lookup notes:
+See [docs/configuration.md](docs/configuration.md) for the full setting-by-setting reference.
 
-- `/xrayhunter lookup [time|alltime] [world|allworlds]` can query loaded Bukkit worlds and CoreProtect database worlds that are not currently loaded on the server.
-- Console lookups default to a narrower high-value-only table so smaller terminals stay readable; add `-all` to a lookup to show every tracked display column for that one run.
-- Compact console mode now narrows the lookup scope too, not just the rendered table, so archive scans can stay fast on large CoreProtect databases.
-- Compact-mode `ORE%` is now calculated against broader tracked totals for the shown players, while the `Shown` column keeps representing the visible high-value subtotal.
-- Explicit `allworlds` scans use batched aggregate queries and can reuse a temporary in-memory summary cache when the same query is repeated soon after.
-- `/xrayhunter detail` now loads one selected player's vein data lazily instead of caching every event from the original lookup.
-- If a short lookup returns no data, XRayHunter now shows the latest tracked block timestamp and suggests a larger window.
-- Console lookup tables use a compact pastel report with ore columns, `ORE%`, `BASE`, and either `Total` or `Shown` so large historical worlds stay readable.
-- Use `-all` when you want the broader tracked-material picture, including lower-value ores, base-material counts, and the more traditional ratio context.
+## Compatibility And Integrations
 
-Tracked materials intentionally include:
+This branch is intended to load the same jar on:
 
-- `ANCIENT_DEBRIS`
-- `GILDED_BLACKSTONE`
-- `NETHER_GOLD_ORE`
-- `NETHER_QUARTZ_ORE`
-- `DIAMOND_ORE`
-- `EMERALD_ORE`
-- `GOLD_ORE`
-- `IRON_ORE`
-- `RAW_IRON_BLOCK`
-- `COPPER_ORE`
-- `RAW_COPPER_BLOCK`
-- `LAPIS_ORE`
-- `REDSTONE_ORE`
-- `COAL_ORE`
-- `STONE`
-- `DEEPSLATE`
-- `NETHERRACK`
+- Paper `1.21.11`
+- Paper `26.1.2`
 
-`RAW_GOLD_BLOCK` is intentionally not tracked.
+Build/runtime metadata:
 
-## Build
+- compiled against Paper API `26.1.2`
+- declares plugin.yml `api-version: 1.21.11`
+- targets Java `25`
 
-Build with Gradle:
+CoreProtect notes:
+
+- the maintained integration target is CoreProtect `24.0-dev1`
+- the maintained API target is CoreProtect API `12`
+- the startup guidance for this branch expects CoreProtect API `11` or `12`
+- the runtime gate still accepts some older API values internally, but older CoreProtect versions are not the documented target for this maintained branch
+
+This plugin does not currently register PlaceholderAPI placeholders.
+
+## Building
+
+Build the plugin with Gradle:
 
 ```bash
 ./gradlew build
 ```
 
-Notes:
-
-- Successful jar builds increment `version.properties`.
-- Each successful build produces a new uniquely named jar in `build/libs/`, so older jars stay there unless you run `clean`.
-- The latest verified local build from this repo pass is:
-  `build/libs/1MB-XRayHunter-v2.0.0-035-j25-26.1.2.jar`
-- The next successful build will increment from build `035`.
-- Gradle compiles this project against Paper API `26.1.2` and keeps plugin.yml `api-version` at `1.21.11` so the same jar can load on both Paper `1.21.11` and Paper `26.1.2`.
-- Gradle prefers CoreProtect `24.0-dev1` from `.gradle/compile-support/CoreProtect-24.0-dev1.jar`, then the centralized Paper cache jars, and only falls back to Maven `23.4` if the dev jar is unavailable.
-- Refresh that compile-support jar from `/Users/floris/Projects/Codex/servers/cache/Paper-26.1.2/plugins/CoreProtect-24.0-dev1.jar` if it is missing.
-- This project no longer relies on a repo-local `servers/` folder. If one exists locally, it stays ignored by Git and is not part of the supported test workflow.
-
-## Testing
-
-Use the centralized shared runner in foreground mode:
+Optional clean rebuild:
 
 ```bash
-/Users/floris/Projects/Codex/servers/run-test-server --paper 1.21.11 --plugin build/libs/1MB-XRayHunter-v<jar>.jar --foreground
-/Users/floris/Projects/Codex/servers/run-test-server --paper 26.1.2 --plugin build/libs/1MB-XRayHunter-v<jar>.jar --foreground
+./gradlew clean build
 ```
 
-The intended verification flow is:
+Artifact naming pattern:
 
-- confirm the plugin enables cleanly
-- run `xrayhunter help`
-- run `xrayhunter debug`
-- run `xrayhunter debug config`
-- run `xrayhunter lookup 2d`
-- stop the foreground server cleanly before moving to the next Paper version
+```text
+build/libs/1MB-XRayHunter-v<plugin-version>-<build-number>-j25-26.1.2.jar
+```
+
+Build behavior:
+
+- each successful jar build increments `version.properties`
+- each successful jar build writes a new jar into `build/libs/`
+- older jars remain unless you run `clean`
+
+## Installation
+
+1. Install CoreProtect on a Paper server.
+2. Start the server once so CoreProtect initializes.
+3. Stop the server cleanly.
+4. Copy the XRayHunter jar into `plugins/`.
+5. Start the server again.
+6. Confirm `/xrayhunter info`, `/xrayhunter help`, and `/xrayhunter debug` work.
+7. Review `plugins/1MB-XRayHunter/config.yml`.
+
+## Limitations And Operational Notes
+
+- `teleport` is in-game only.
+- `detail` depends on a recent lookup cache.
+- implicit console all-world lookups are capped by config for safety.
+- explicit `allworlds` scans are supported for large archive reviews.
+- compact console mode narrows both the displayed columns and the query scope unless `-all` is supplied.
 
 ## Credits
 
 - Original XRayHunter author: [R4zorax](https://github.com/rlf)
-- 1MoreBlock maintenance, compatibility updates, packaging, and testing: [mrfloris](https://github.com/mrfloris)
-- Thanks to the contributors in this repository history and to OpenAI for development assistance
+- 1MoreBlock maintenance, compatibility work, packaging, and documentation: [mrfloris](https://github.com/mrfloris)
+- Thanks to repository contributors and OpenAI for development assistance

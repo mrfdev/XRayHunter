@@ -24,6 +24,8 @@ import org.jspecify.annotations.Nullable;
  * Primary /xrayhunter command dispatcher and debug/help surface.
  */
 public class MainCommand implements CommandExecutor, TabCompleter {
+    private static final String DOCS_URL = "https://docs.1moreblock.com/custom-server-plugins/1mb-xrayhunter/";
+    private static final String DOCS_LABEL = "docs.1moreblock.com/custom-server-plugins/1mb-xrayhunter/";
     private static final String PERMISSION_USE = "xrayhunter.use";
     private static final String PERMISSION_ADMIN = "xrayhunter.admin";
     private static final String LEGACY_PERMISSION_USE = "xhunt.use";
@@ -47,6 +49,10 @@ public class MainCommand implements CommandExecutor, TabCompleter {
     public boolean onCommand(CommandSender sender, Command command, String alias, String[] args) {
         if (args.length == 0 || isHelpToken(args[0])) {
             return sendHelp(sender);
+        }
+
+        if (isSubcommand(args[0], "info")) {
+            return sendInfo(sender);
         }
 
         if (isSubcommand(args[0], "debug")) {
@@ -88,6 +94,7 @@ public class MainCommand implements CommandExecutor, TabCompleter {
         if (args.length == 1) {
             final List<String> suggestions = new ArrayList<>();
             suggestions.add("help");
+            suggestions.add("info");
             if (hasUsePermission(sender)) {
                 suggestions.addAll(List.of("lookup", "detail", "teleport"));
                 suggestions.addAll(List.of("2d", "7d", "30d"));
@@ -157,6 +164,7 @@ public class MainCommand implements CommandExecutor, TabCompleter {
         final BuildInfo buildInfo = plugin.getBuildInfo();
         sender.sendMessage("§6# §e1MB-XRayHunter Commands");
         sender.sendMessage("§f/xrayhunter help §7- Show this command summary.");
+        sender.sendMessage("§f/xrayhunter info §7- Show a short introduction, quick-start hints, and the docs link.");
         sender.sendMessage("§f/xrayhunter lookup [time|alltime] [world|allworlds] [-all] §7- Scan CoreProtect block breaks in one world or across all worlds, including database-only worlds.");
         sender.sendMessage("§f/xrayhunter <time|alltime> §7- Shortcut for the same lookup command.");
         sender.sendMessage("§f/xrayhunter detail <index|player> [page] §7- Show cached vein details for one lookup result in chat or console.");
@@ -184,6 +192,26 @@ public class MainCommand implements CommandExecutor, TabCompleter {
             sender.sendMessage("§f/xrayhunter debug whitelist <player> §7- Add a vetted player to filters.excluded-players and reload.");
             sender.sendMessage("§f/xrayhunter reload §7- Reload config.yml.");
         }
+        return true;
+    }
+
+    private boolean sendInfo(CommandSender sender) {
+        final BuildInfo buildInfo = plugin.getBuildInfo();
+        sender.sendMessage("§6# §e1MB-XRayHunter");
+        sender.sendMessage("§7CoreProtect add-on for suspicious mining lookups, cached vein review, and archive-friendly X-ray triage.");
+        sender.sendMessage("§7Start with §f/xrayhunter help§7 for the full command list.");
+        sender.sendMessage("§7Quick start: §f/xrayhunter 2d§7, then §f/xrayhunter detail 1§7 after you have a result.");
+        if (hasAdminPermission(sender)) {
+            sender.sendMessage("§7Admin tools: §f/xrayhunter debug§7, §f/xrayhunter debug config§7, §f/xrayhunter debug whitelist <player>§7.");
+        }
+        sender.sendRichMessage("<gray>Docs: <click:open_url:'" + DOCS_URL + "'><aqua><u>" + DOCS_LABEL + "</u></aqua></click>");
+        sender.sendMessage(MessageFormat.format(
+                "§7Installed: §f{0} §7(build §f{1}§7) / Paper API §f{2}§7 / plugin api-version floor §f{3}",
+                buildInfo.pluginVersion(),
+                buildInfo.buildNumber(),
+                buildInfo.paperApiCompileTarget(),
+                buildInfo.pluginApiCompatibilityFloor()
+        ));
         return true;
     }
 
@@ -308,6 +336,7 @@ public class MainCommand implements CommandExecutor, TabCompleter {
     private void sendDebugCommands(CommandSender sender) {
         sender.sendMessage("§6# §e1MB-XRayHunter Commands");
         sender.sendMessage("§f/xrayhunter help");
+        sender.sendMessage("§f/xrayhunter info");
         sender.sendMessage("§f/xrayhunter lookup [time|alltime] [world|allworlds] [-all]");
         sender.sendMessage("§f/xrayhunter <time|alltime>");
         sender.sendMessage("§f/xrayhunter detail <index|player> [page]");
