@@ -1,10 +1,10 @@
 name: @pluginName@
 main: dk.lockfuglsang.xrayhunter.XRayHunter
 version: @version@
-api-version: @pluginApiCompatibilityFloor@
+api-version: '@pluginApiVersion@'
 authors: [R4zorax, mrfloris]
 depend: [CoreProtect]
-description: CoreProtect 24.0-dev1 add-on for suspicious mining stats, compiled against Paper 26.1.2 and declaring api-version 1.21.11.
+description: CoreProtect 24.0-dev1 add-on for suspicious mining stats, targeting Paper 26.2 build 60 beta and Java 25.
 prefix: XRayHunter
 commands:
   xrayhunter:

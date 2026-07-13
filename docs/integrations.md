@@ -26,9 +26,9 @@ Runtime notes:
 ## Server Platform
 
 - Required platform family: Paper
-- Compile target: Paper API `26.1.2`
-- Declared plugin API floor: `1.21.11`
-- Intended same-jar support: Paper `1.21.11` and Paper `26.1.2`
+- Server/API target: Paper `26.2`
+- Compile version: Paper API `26.2.build.60-beta`
+- Declared plugin API version: `26.2`
 - Java target: `25`
 
 ## World And Archive Scope

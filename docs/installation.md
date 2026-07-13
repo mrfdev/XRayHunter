@@ -6,18 +6,17 @@
 - Java `25`
 - CoreProtect installed and enabled
 
-Verified branch targets:
+Server target:
 
-- Paper `1.21.11`
-- Paper `26.1.2`
+- Paper `26.2` build `60` beta or a newer compatible 26.2 build
 
 Compile target:
 
-- Paper API `26.1.2`
+- Paper API `26.2.build.60-beta`
 
-Declared plugin compatibility floor:
+Declared plugin API version:
 
-- `api-version: 1.21.11`
+- `api-version: '26.2'`
 
 CoreProtect target:
 
@@ -62,7 +61,7 @@ Use the normal Gradle build:
 Jar naming pattern:
 
 ```text
-build/libs/1MB-XRayHunter-v<plugin-version>-<build-number>-j25-26.1.2.jar
+build/libs/1MB-XRayHunter-v<plugin-version>-<build-number>-j25-26.2.jar
 ```
 
 Build behavior:

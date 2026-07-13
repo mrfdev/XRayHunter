@@ -14,8 +14,9 @@ public record BuildInfo(
         String buildNumber,
         String fullVersion,
         String javaTarget,
-        String paperApiCompileTarget,
-        String pluginApiCompatibilityFloor,
+        String paperApiTarget,
+        String paperApiCompileVersion,
+        String pluginApiVersion,
         String coreProtectTarget
 ) {
     public static BuildInfo load(JavaPlugin plugin) {
@@ -37,8 +38,9 @@ public record BuildInfo(
                 properties.getProperty("build-number", "unknown"),
                 properties.getProperty("full-version", pluginMetaVersion),
                 properties.getProperty("java-target", "unknown"),
-                properties.getProperty("paper-api-compile-target", "unknown"),
-                properties.getProperty("plugin-api-compatibility-floor", pluginMetaApiVersion),
+                properties.getProperty("paper-api-target", "unknown"),
+                properties.getProperty("paper-api-compile-version", "unknown"),
+                properties.getProperty("plugin-api-version", pluginMetaApiVersion),
                 properties.getProperty("coreprotect-target", "unknown")
         );
     }

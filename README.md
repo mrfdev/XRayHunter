@@ -10,8 +10,9 @@ This repository is the technical source of truth for the plugin. Public-safe pla
 
 - Main command: `/xrayhunter`
 - Public info entry point: `/xrayhunter info`
-- Paper compile target: `26.1.2`
-- Declared plugin compatibility floor: `1.21.11`
+- Paper server/API target: `26.2`
+- Paper API compile version: `26.2.build.60-beta`
+- Declared plugin API version: `26.2`
 - Java target: `25`
 - Required dependency: CoreProtect
 - Maintained CoreProtect target: `24.0-dev1` with API `12`
@@ -98,17 +99,14 @@ Important config notes:
 
 See [docs/configuration.md](docs/configuration.md) for the full setting-by-setting reference.
 
-## Compatibility And Integrations
+## Platform And Integrations
 
-This branch is intended to load the same jar on:
-
-- Paper `1.21.11`
-- Paper `26.1.2`
+This branch targets Paper `26.2` build `60` beta and newer compatible 26.2 builds.
 
 Build/runtime metadata:
 
-- compiled against Paper API `26.1.2`
-- declares plugin.yml `api-version: 1.21.11`
+- compiled against Paper API `26.2.build.60-beta`
+- declares plugin.yml `api-version: '26.2'`
 - targets Java `25`
 
 CoreProtect notes:
@@ -137,7 +135,7 @@ Optional clean rebuild:
 Artifact naming pattern:
 
 ```text
-build/libs/1MB-XRayHunter-v<plugin-version>-<build-number>-j25-26.1.2.jar
+build/libs/1MB-XRayHunter-v<plugin-version>-<build-number>-j25-26.2.jar
 ```
 
 Build behavior:

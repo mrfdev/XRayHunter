@@ -108,7 +108,7 @@ It does enforce a few safety limits:
 
 - Required integration: CoreProtect
 - Supported runtime target: Paper
-- Main verification targets for this branch: Paper `1.21.11` and Paper `26.1.2`
+- Server/API target for this branch: Paper `26.2` build `60` beta or newer compatible 26.2 builds
 - Java target: `25`
 
 ## Technical Documentation

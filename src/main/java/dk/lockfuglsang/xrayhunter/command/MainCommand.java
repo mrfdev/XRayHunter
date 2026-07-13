@@ -171,9 +171,9 @@ public class MainCommand implements CommandExecutor, TabCompleter {
         sender.sendMessage("§f/xrayhunter teleport <index> §7- Teleport to one cached vein location.");
         sender.sendMessage("§7Default lookup time: §f" + plugin.getSettings().defaultLookupTime());
         sender.sendMessage(MessageFormat.format(
-                "§7Build metadata: §fPaper API {0} §7/ plugin api-version floor §f{1} §7/ CoreProtect §f{2} §7/ Java §f{3}",
-                buildInfo.paperApiCompileTarget(),
-                buildInfo.pluginApiCompatibilityFloor(),
+                "§7Build metadata: §fPaper API {0} §7/ plugin api-version §f{1} §7/ CoreProtect §f{2} §7/ Java §f{3}",
+                buildInfo.paperApiCompileVersion(),
+                buildInfo.pluginApiVersion(),
                 buildInfo.coreProtectTarget(),
                 buildInfo.javaTarget()
         ));
@@ -206,11 +206,11 @@ public class MainCommand implements CommandExecutor, TabCompleter {
         }
         sender.sendRichMessage("<gray>Docs: <click:open_url:'" + DOCS_URL + "'><aqua><u>" + DOCS_LABEL + "</u></aqua></click>");
         sender.sendMessage(MessageFormat.format(
-                "§7Installed: §f{0} §7(build §f{1}§7) / Paper API §f{2}§7 / plugin api-version floor §f{3}",
+                "§7Installed: §f{0} §7(build §f{1}§7) / Paper API §f{2}§7 / plugin api-version §f{3}",
                 buildInfo.pluginVersion(),
                 buildInfo.buildNumber(),
-                buildInfo.paperApiCompileTarget(),
-                buildInfo.pluginApiCompatibilityFloor()
+                buildInfo.paperApiCompileVersion(),
+                buildInfo.pluginApiVersion()
         ));
         return true;
     }
@@ -282,8 +282,9 @@ public class MainCommand implements CommandExecutor, TabCompleter {
         sender.sendMessage(cleanMetaLine("Base version", buildInfo.pluginVersion()));
         sender.sendMessage(cleanMetaLine("Build number", buildInfo.buildNumber()));
         sender.sendMessage(cleanMetaLine("Compiled Java target", buildInfo.javaTarget()));
-        sender.sendMessage(cleanMetaLine("Compiled against Paper API", buildInfo.paperApiCompileTarget()));
-        sender.sendMessage(cleanMetaLine("Declared plugin api-version floor", buildInfo.pluginApiCompatibilityFloor()));
+        sender.sendMessage(cleanMetaLine("Paper target", buildInfo.paperApiTarget()));
+        sender.sendMessage(cleanMetaLine("Compiled against Paper API", buildInfo.paperApiCompileVersion()));
+        sender.sendMessage(cleanMetaLine("Declared plugin api-version", buildInfo.pluginApiVersion()));
         sender.sendMessage(cleanMetaLine("Running Java", System.getProperty("java.version", "unknown")));
         sender.sendMessage(cleanMetaLine("Server", plugin.getServer().getVersion()));
         sender.sendMessage(cleanMetaLine("Data folder", plugin.getDataFolder().getAbsolutePath()));
