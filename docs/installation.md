@@ -8,11 +8,11 @@
 
 Server target:
 
-- Paper `26.2` build `60` beta or a newer compatible 26.2 build
+- Paper `26.2` build `84` stable or a newer compatible 26.2 build
 
 Compile target:
 
-- Paper API `26.2.build.60-beta`
+- Paper API `26.2.build.84-stable`
 
 Declared plugin API version:
 
@@ -55,7 +55,7 @@ The plugin keeps its own data folder as:
 Use the normal Gradle build:
 
 ```bash
-./gradlew build
+JAVA_HOME=/Library/Java/JavaVirtualMachines/jdk-25.0.4.jdk/Contents/Home ./gradlew build
 ```
 
 Jar naming pattern:
@@ -73,8 +73,10 @@ Build behavior:
 Optional clean rebuild:
 
 ```bash
-./gradlew clean build
+JAVA_HOME=/Library/Java/JavaVirtualMachines/jdk-25.0.4.jdk/Contents/Home ./gradlew clean build
 ```
+
+The build must run on JDK `25.0.4` and emits Java `25` bytecode. Runtime smoke testing is also supported on JDK `26.0.2` through the shared runner's `JAVA_BIN` override.
 
 ## First-Run Readiness Checks
 

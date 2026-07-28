@@ -1,4 +1,5 @@
 import org.apache.tools.ant.filters.ReplaceTokens
+import java.util.zip.ZipFile
 
 plugins {
     id 'java'
@@ -7,7 +8,9 @@ plugins {
 def pluginName = '1MB-XRayHunter'
 def javaTarget = 25
 def paperApiTarget = '26.2'
-def paperApiCompileVersion = '26.2.build.60-beta'
+def paperApiBuild = 84
+def paperApiChannel = 'stable'
+def paperApiCompileVersion = "${paperApiTarget}.build.${paperApiBuild}-${paperApiChannel}"
 def pluginApiVersion = '26.2'
 def targetCoreProtectVersion = '24.0-dev1'
 def fallbackCoreProtectVersion = '23.4'
@@ -36,6 +39,7 @@ def currentBuildNumber = Integer.parseInt(versionProperties.getProperty('buildNu
 def nextBuildNumber = currentBuildNumber + 1
 def buildNumber = String.format('%03d', nextBuildNumber)
 def pluginBuildVersion = "${pluginVersion}-${buildNumber}-j${javaTarget}-${paperApiTarget}"
+def expectedJarName = "${pluginName}-v${pluginBuildVersion}.jar"
 
 group = 'dk.lockfuglsang'
 version = pluginBuildVersion
@@ -102,11 +106,142 @@ tasks.withType(JavaCompile).configureEach {
 }
 
 tasks.jar {
-    archiveFileName.set("${pluginName}-v${pluginBuildVersion}.jar")
+    archiveFileName.set(expectedJarName)
     doLast {
         versionPropertiesFile.text = """# Updated after a successful jar build.
 pluginVersion=${pluginVersion}
 buildNumber=${buildNumber}
 """
     }
+}
+
+tasks.register('verifyReleaseMetadata') {
+    group = 'verification'
+    description = 'Checks generated release metadata and documentation for version drift.'
+    dependsOn tasks.processResources
+
+    doLast {
+        if (!(pluginVersion ==~ /\d+\.\d+\.\d+/)) {
+            throw new GradleException("pluginVersion must be semantic x.y.z, found: ${pluginVersion}")
+        }
+        if (!(buildNumber ==~ /\d{3}/)) {
+            throw new GradleException("buildNumber must use three digits, found: ${buildNumber}")
+        }
+        if (pluginApiVersion != paperApiTarget) {
+            throw new GradleException("plugin api-version ${pluginApiVersion} does not match Paper target ${paperApiTarget}")
+        }
+        if (paperApiChannel != 'stable') {
+            throw new GradleException("Paper API channel must be stable, found: ${paperApiChannel}")
+        }
+
+        def generatedPluginYaml = layout.buildDirectory.file('resources/main/plugin.yml').get().asFile.text
+        def generatedBuildInfo = layout.buildDirectory.file('resources/main/build-info.properties').get().asFile.text
+        [
+                "version: ${pluginBuildVersion}",
+                "api-version: '${pluginApiVersion}'",
+                "Paper API ${paperApiCompileVersion}",
+                "Java ${javaTarget}"
+        ].each { expected ->
+            if (!generatedPluginYaml.contains(expected)) {
+                throw new GradleException("Generated plugin.yml is missing: ${expected}")
+            }
+        }
+        [
+                "plugin-version=${pluginVersion}",
+                "build-number=${buildNumber}",
+                "full-version=${pluginBuildVersion}",
+                "java-target=${javaTarget}",
+                "paper-api-target=${paperApiTarget}",
+                "paper-api-compile-version=${paperApiCompileVersion}",
+                "plugin-api-version=${pluginApiVersion}"
+        ].each { expected ->
+            if (!generatedBuildInfo.contains(expected)) {
+                throw new GradleException("Generated build-info.properties is missing: ${expected}")
+            }
+        }
+
+        def maintainedReleaseDocs = [
+                file('README.md'),
+                file('docs/installation.md'),
+                file('docs/integrations.md'),
+                file('docs/player-guide.md')
+        ]
+        def coordinatePattern = ~/26\.2\.build\.\d+-(?:alpha|beta|stable)/
+        maintainedReleaseDocs.each { releaseDoc ->
+            def coordinates = (releaseDoc.text =~ coordinatePattern).findAll()
+            coordinates.each { coordinate ->
+                if (coordinate != paperApiCompileVersion) {
+                    throw new GradleException("${releaseDoc} contains stale Paper API coordinate ${coordinate}")
+                }
+            }
+        }
+
+        def docsManifest = file('docs/plugin-docs.yml').text
+        [
+                "java_target: ${javaTarget}",
+                "paper_target: ${paperApiTarget}",
+                "paper_api: ${paperApiCompileVersion}",
+                "paper_build: ${paperApiBuild}",
+                "paper_channel: ${paperApiChannel.toUpperCase(Locale.ROOT)}"
+        ].each { expected ->
+            if (!docsManifest.contains(expected)) {
+                throw new GradleException("docs/plugin-docs.yml is missing: ${expected}")
+            }
+        }
+    }
+}
+
+tasks.register('verifyReleaseJar') {
+    group = 'verification'
+    description = 'Checks the release jar name, embedded metadata, and Java bytecode target.'
+    dependsOn tasks.jar
+    dependsOn tasks.named('verifyReleaseMetadata')
+
+    doLast {
+        def jarFile = tasks.jar.archiveFile.get().asFile
+        if (jarFile.name != expectedJarName) {
+            throw new GradleException("Unexpected jar name ${jarFile.name}; expected ${expectedJarName}")
+        }
+
+        new ZipFile(jarFile).withCloseable { zip ->
+            def pluginYaml = zip.getInputStream(zip.getEntry('plugin.yml')).getText('UTF-8')
+            def buildInfo = zip.getInputStream(zip.getEntry('build-info.properties')).getText('UTF-8')
+            if (!pluginYaml.contains("version: ${pluginBuildVersion}")
+                    || !pluginYaml.contains("api-version: '${pluginApiVersion}'")) {
+                throw new GradleException('Embedded plugin.yml release metadata is stale')
+            }
+            if (!buildInfo.contains("paper-api-compile-version=${paperApiCompileVersion}")
+                    || !buildInfo.contains("java-target=${javaTarget}")) {
+                throw new GradleException('Embedded build-info.properties release metadata is stale')
+            }
+
+            def expectedClassMajor = javaTarget + 44
+            def classEntries = zip.entries().findAll { entry -> entry.name.endsWith('.class') }
+            if (classEntries.isEmpty()) {
+                throw new GradleException('Release jar contains no class files')
+            }
+            classEntries.each { entry ->
+                zip.getInputStream(entry).withCloseable { input ->
+                    byte[] header = input.readNBytes(8)
+                    int classMajor = ((header[6] & 0xff) << 8) | (header[7] & 0xff)
+                    if (classMajor != expectedClassMajor) {
+                        throw new GradleException("${entry.name} has class major ${classMajor}; expected ${expectedClassMajor}")
+                    }
+                }
+            }
+        }
+
+        def persistedVersionProperties = new Properties()
+        versionPropertiesFile.withInputStream { stream ->
+            persistedVersionProperties.load(stream)
+        }
+        if (persistedVersionProperties.getProperty('pluginVersion') != pluginVersion
+                || persistedVersionProperties.getProperty('buildNumber') != buildNumber) {
+            throw new GradleException('version.properties does not match the successfully built release')
+        }
+    }
+}
+
+tasks.named('check') {
+    dependsOn tasks.named('verifyReleaseJar')
 }

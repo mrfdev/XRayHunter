@@ -8,5 +8,8 @@ player_guide: player-guide.md
 technical_readme: ../README.md
 java_target: 25
 paper_target: 26.2
+paper_api: 26.2.build.84-stable
+paper_build: 84
+paper_channel: STABLE
 official_project: true
 repository: mrfdev/XRayHunter

@@ -11,7 +11,8 @@ This repository is the technical source of truth for the plugin. Public-safe pla
 - Main command: `/xrayhunter`
 - Public info entry point: `/xrayhunter info`
 - Paper server/API target: `26.2`
-- Paper API compile version: `26.2.build.60-beta`
+- Paper API compile version: `26.2.build.84-stable`
+- Paper release channel: `STABLE`
 - Declared plugin API version: `26.2`
 - Java target: `25`
 - Required dependency: CoreProtect
@@ -101,11 +102,11 @@ See [docs/configuration.md](docs/configuration.md) for the full setting-by-setti
 
 ## Platform And Integrations
 
-This branch targets Paper `26.2` build `60` beta and newer compatible 26.2 builds.
+This branch targets Paper `26.2` build `84` stable and newer compatible 26.2 builds.
 
 Build/runtime metadata:
 
-- compiled against Paper API `26.2.build.60-beta`
+- compiled against Paper API `26.2.build.84-stable`
 - declares plugin.yml `api-version: '26.2'`
 - targets Java `25`
 
@@ -123,13 +124,13 @@ This plugin does not currently register PlaceholderAPI placeholders.
 Build the plugin with Gradle:
 
 ```bash
-./gradlew build
+JAVA_HOME=/Library/Java/JavaVirtualMachines/jdk-25.0.4.jdk/Contents/Home ./gradlew build
 ```
 
 Optional clean rebuild:
 
 ```bash
-./gradlew clean build
+JAVA_HOME=/Library/Java/JavaVirtualMachines/jdk-25.0.4.jdk/Contents/Home ./gradlew clean build
 ```
 
 Artifact naming pattern:
@@ -143,6 +144,14 @@ Build behavior:
 - each successful jar build increments `version.properties`
 - each successful jar build writes a new jar into `build/libs/`
 - older jars remain unless you run `clean`
+- the normal `check`/`build` lifecycle verifies generated metadata, docs release coordinates, jar naming, and Java 25 bytecode
+
+Runtime smoke tests can select either maintained JDK without changing server scripts:
+
+```bash
+JAVA_BIN=/Library/Java/JavaVirtualMachines/jdk-25.0.4.jdk/Contents/Home/bin/java /Users/floris/Projects/Codex/servers/run-test-server --paper 26.2 --plugin build/libs/<jar>.jar --foreground
+JAVA_BIN=/Library/Java/JavaVirtualMachines/jdk-26.0.2.jdk/Contents/Home/bin/java /Users/floris/Projects/Codex/servers/run-test-server --paper 26.2 --plugin build/libs/<jar>.jar --foreground
+```
 
 ## Installation
 

@@ -27,7 +27,8 @@ Runtime notes:
 
 - Required platform family: Paper
 - Server/API target: Paper `26.2`
-- Compile version: Paper API `26.2.build.60-beta`
+- Compile version: Paper API `26.2.build.84-stable`
+- Release channel: `STABLE`
 - Declared plugin API version: `26.2`
 - Java target: `25`
 
