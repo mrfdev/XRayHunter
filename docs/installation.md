@@ -55,7 +55,7 @@ The plugin keeps its own data folder as:
 Use the normal Gradle build:
 
 ```bash
-JAVA_HOME=/Library/Java/JavaVirtualMachines/jdk-25.0.4.jdk/Contents/Home ./gradlew build
+JAVA_HOME=/path/to/jdk-25 ./gradlew build
 ```
 
 Jar naming pattern:
@@ -73,7 +73,7 @@ Build behavior:
 Optional clean rebuild:
 
 ```bash
-JAVA_HOME=/Library/Java/JavaVirtualMachines/jdk-25.0.4.jdk/Contents/Home ./gradlew clean build
+JAVA_HOME=/path/to/jdk-25 ./gradlew clean build
 ```
 
 The build must run on JDK `25.0.4` and emits Java `25` bytecode. Runtime smoke testing is also supported on JDK `26.0.2` through the shared runner's `JAVA_BIN` override.
