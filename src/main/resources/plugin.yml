@@ -1,5 +1,5 @@
 name: @pluginName@
-main: dk.lockfuglsang.xrayhunter.XRayHunter
+main: @pluginMain@
 version: @version@
 api-version: '@pluginApiVersion@'
 authors: [R4zorax, mrfloris]

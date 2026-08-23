@@ -73,7 +73,7 @@ The bundled `config.yml` already includes comment-preserving inline guidance for
 - Default: `30d`
 - Type: duration string
 - Controls the maximum implicit all-world console time window when no world argument is supplied.
-- Explicit `allworlds` scans are still possible for deliberate archive work.
+- Explicit `allworlds` lookups are still possible for deliberate archive work.
 - Reload behavior: reload or restart required after manual edits
 - Command edit: `/xrayhunter debug set console.max-all-world-lookup-time <duration>`
 

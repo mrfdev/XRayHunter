@@ -41,7 +41,7 @@ Notes:
 ## Updating An Existing Installation
 
 1. Stop the server cleanly.
-2. Replace the old XRayHunter jar in `plugins/`.
+2. Replace the old XRayHunter jar in `plugins/`; do not leave both old and new jars installed.
 3. Start the server again.
 4. Review the startup self-check and `config.yml`.
 5. Run `/xrayhunter debug` to confirm the build metadata and CoreProtect hook status.
@@ -49,6 +49,8 @@ Notes:
 The plugin keeps its own data folder as:
 
 - `plugins/1MB-XRayHunter/`
+
+The internal Java package refactor does not move or rename that folder and does not require a configuration migration. A future move into the unified CoreProtect add-on will require its own documented import or compatibility procedure; do not install standalone XRayHunter alongside a combined implementation that already includes it.
 
 ## Building From Source
 

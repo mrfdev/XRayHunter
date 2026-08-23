@@ -76,7 +76,7 @@ Console behavior:
 
 - Implicit console all-world lookups are allowed only when `console.allow-server-wide-lookups` is true.
 - Implicit console all-world lookups are capped by `console.max-all-world-lookup-time`.
-- Explicit `allworlds` scans bypass that implicit cap.
+- Explicit `allworlds` lookups bypass that implicit cap.
 - Compact console mode uses the high-value material set unless `-all` is supplied.
 
 ### `/xrayhunter <time|alltime>`

@@ -24,14 +24,14 @@ Possible reasons:
 
 - the requested window is newer than the latest tracked CoreProtect block data
 - that world has no tracked activity in the requested time range
-- the sender expected a large archive scan but only ran a short window
+- the sender expected a large archive lookup but only ran a short window
 
 Helpful follow-up:
 
 - run `/xrayhunter debug`
 - run `/xrayhunter debug config`
 - try a larger window such as `/xrayhunter lookup 30d`
-- try an explicit archive scan such as `/xrayhunter lookup alltime allworlds`
+- try an explicit archive lookup such as `/xrayhunter lookup alltime allworlds`
 
 ## Console Says The Lookup Is Too Large
 
@@ -92,7 +92,7 @@ Notes:
 
 Helpful practices:
 
-- use the compact high-value-only console mode for broad scans
+- use the compact high-value-only console mode for broad lookups
 - add `-all` only when you need the wider material context
 - prefer world-specific lookups first
 - reserve `alltime allworlds` for deliberate review sessions

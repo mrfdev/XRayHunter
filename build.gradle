@@ -6,6 +6,7 @@ plugins {
 }
 
 def pluginName = '1MB-XRayHunter'
+def pluginMain = 'com.onemb.cmiapi.xrayhunter.XRayHunterPlugin'
 def javaTarget = 25
 def paperApiTarget = '26.2'
 def paperApiBuild = 84
@@ -41,7 +42,7 @@ def buildNumber = String.format('%03d', nextBuildNumber)
 def pluginBuildVersion = "${pluginVersion}-${buildNumber}-j${javaTarget}-${paperApiTarget}"
 def expectedJarName = "${pluginName}-v${pluginBuildVersion}.jar"
 
-group = 'dk.lockfuglsang'
+group = 'com.onemb.cmiapi'
 version = pluginBuildVersion
 
 java {
@@ -75,6 +76,7 @@ dependencies {
 processResources {
     inputs.properties([
             pluginName              : pluginName.toString(),
+            pluginMain              : pluginMain.toString(),
             pluginVersion           : pluginVersion.toString(),
             buildNumber             : buildNumber.toString(),
             version                 : version.toString(),
@@ -85,9 +87,10 @@ processResources {
             targetCoreProtectVersion: targetCoreProtectVersion.toString()
     ])
     filteringCharset = 'UTF-8'
-    filesMatching(['plugin.yml', 'build-info.properties']) {
+    filesMatching(['plugin.yml', 'xrayhunter/build-info.properties']) {
         filter ReplaceTokens, tokens: [
                 pluginName              : pluginName.toString(),
+                pluginMain              : pluginMain.toString(),
                 pluginVersion           : pluginVersion.toString(),
                 buildNumber             : buildNumber.toString(),
                 version                 : version.toString(),
@@ -135,8 +138,17 @@ tasks.register('verifyReleaseMetadata') {
         }
 
         def generatedPluginYaml = layout.buildDirectory.file('resources/main/plugin.yml').get().asFile.text
-        def generatedBuildInfo = layout.buildDirectory.file('resources/main/build-info.properties').get().asFile.text
+        def generatedBuildInfo = layout.buildDirectory.file('resources/main/xrayhunter/build-info.properties').get().asFile.text
         [
+                layout.buildDirectory.file('resources/main/config.yml').get().asFile,
+                layout.buildDirectory.file('resources/main/build-info.properties').get().asFile
+        ].each { legacyRootResource ->
+            if (legacyRootResource.exists()) {
+                throw new GradleException("Feature resource must remain namespaced in the jar: ${legacyRootResource.name}")
+            }
+        }
+        [
+                "main: ${pluginMain}",
                 "version: ${pluginBuildVersion}",
                 "api-version: '${pluginApiVersion}'",
                 "Paper API ${paperApiCompileVersion}",
@@ -205,7 +217,7 @@ tasks.register('verifyReleaseJar') {
 
         new ZipFile(jarFile).withCloseable { zip ->
             def pluginYaml = zip.getInputStream(zip.getEntry('plugin.yml')).getText('UTF-8')
-            def buildInfo = zip.getInputStream(zip.getEntry('build-info.properties')).getText('UTF-8')
+            def buildInfo = zip.getInputStream(zip.getEntry('xrayhunter/build-info.properties')).getText('UTF-8')
             if (!pluginYaml.contains("version: ${pluginBuildVersion}")
                     || !pluginYaml.contains("api-version: '${pluginApiVersion}'")) {
                 throw new GradleException('Embedded plugin.yml release metadata is stale')

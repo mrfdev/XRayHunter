@@ -21,7 +21,7 @@ Staff usually follow this flow:
 ## Available Features
 
 - Looks up suspicious mining activity in loaded worlds and CoreProtect database-only worlds.
-- Supports short lookups, long historical lookups, and explicit all-world archive scans.
+- Supports short lookups, long historical lookups, and explicit all-world archive lookups.
 - Uses a compact high-value console view by default so large reports stay readable.
 - Lets staff drill into cached vein detail pages after a lookup.
 - Teleports in-game staff to a cached vein location when a safe spot is found nearby.
@@ -88,7 +88,7 @@ It does enforce a few safety limits:
 
 - Console all-world lookups can be disabled in config.
 - Console implicit all-world lookups have a configurable maximum time window.
-- Explicit `allworlds` lookups can still scan much larger archives when staff asks for them deliberately.
+- Explicit `allworlds` lookups can still query much larger archives when staff asks for them deliberately.
 - Console output defaults to a compact high-value-only view unless `-all` is supplied.
 
 ## Placeholders

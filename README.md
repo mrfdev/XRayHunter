@@ -23,7 +23,7 @@ This repository is the technical source of truth for the plugin. Public-safe pla
 ## Features
 
 - Suspicious-mining lookups across loaded worlds and CoreProtect database-only worlds
-- Explicit all-world archive scans for staff review sessions
+- Explicit all-world archive lookups for staff review sessions
 - Compact console reporting with a high-value-only mode enabled by default
 - Lazy player detail loading so large archive lookups do not keep every tracked event in memory
 - Cached vein detail pages and safe in-game teleport targets
@@ -41,6 +41,7 @@ This repository is the technical source of truth for the plugin. Public-safe pla
 - [Installation](docs/installation.md)
 - [Integrations](docs/integrations.md)
 - [Troubleshooting](docs/troubleshooting.md)
+- [Architecture and Consolidation](docs/architecture.md)
 - [Docs Manifest](docs/plugin-docs.yml)
 
 ## Commands
@@ -119,6 +120,12 @@ CoreProtect notes:
 
 This plugin does not currently register PlaceholderAPI placeholders.
 
+## Internal Architecture
+
+The internal Java namespace is `com.onemb.cmiapi.xrayhunter`, under Gradle group `com.onemb.cmiapi`. The standalone Paper entry point delegates to a feature-owned runtime whose sessions, caches, worker, and CoreProtect history boundary can later be hosted by the planned unified CoreProtect add-on.
+
+This refactor does not add a runtime dependency on 1MB-Library and does not change the installed plugin name, data folder, commands, aliases, permissions, configuration keys, log prefix, documentation URL, or jar naming. See [docs/architecture.md](docs/architecture.md) and [ADR-0001](docs/adr/0001-preserve-xrayhunter-identity-for-coreprotect-consolidation.md) for the ownership boundary and consolidation checklist.
+
 ## Building
 
 Build the plugin with Gradle:
@@ -168,7 +175,7 @@ JAVA_BIN=/Library/Java/JavaVirtualMachines/jdk-26.0.2.jdk/Contents/Home/bin/java
 - `teleport` is in-game only.
 - `detail` depends on a recent lookup cache.
 - implicit console all-world lookups are capped by config for safety.
-- explicit `allworlds` scans are supported for large archive reviews.
+- explicit `allworlds` lookups are supported for large archive reviews.
 - compact console mode narrows both the displayed columns and the query scope unless `-all` is supplied.
 
 ## Credits
