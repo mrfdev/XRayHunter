@@ -124,13 +124,13 @@ This plugin does not currently register PlaceholderAPI placeholders.
 Build the plugin with Gradle:
 
 ```bash
-JAVA_HOME=/Library/Java/JavaVirtualMachines/jdk-25.0.4.jdk/Contents/Home ./gradlew build
+JAVA_HOME=/path/to/jdk-25 ./gradlew build
 ```
 
 Optional clean rebuild:
 
 ```bash
-JAVA_HOME=/Library/Java/JavaVirtualMachines/jdk-25.0.4.jdk/Contents/Home ./gradlew clean build
+JAVA_HOME=/path/to/jdk-25 ./gradlew clean build
 ```
 
 Artifact naming pattern:
@@ -146,11 +146,13 @@ Build behavior:
 - older jars remain unless you run `clean`
 - the normal `check`/`build` lifecycle verifies generated metadata, docs release coordinates, jar naming, and Java 25 bytecode
 
+The build prefers `.gradle/compile-support/CoreProtect-24.0-dev1.jar`. Its optional shared fallback uses the sibling `../servers` directory; set `CODEX_SHARED_SERVERS_ROOT` to override that location.
+
 Runtime smoke tests can select either maintained JDK without changing server scripts:
 
 ```bash
-JAVA_BIN=/Library/Java/JavaVirtualMachines/jdk-25.0.4.jdk/Contents/Home/bin/java /Users/floris/Projects/Codex/servers/run-test-server --paper 26.2 --plugin build/libs/<jar>.jar --foreground
-JAVA_BIN=/Library/Java/JavaVirtualMachines/jdk-26.0.2.jdk/Contents/Home/bin/java /Users/floris/Projects/Codex/servers/run-test-server --paper 26.2 --plugin build/libs/<jar>.jar --foreground
+JAVA_BIN=/path/to/jdk-25/bin/java /path/to/run-test-server --paper 26.2 --plugin build/libs/<jar>.jar --foreground
+JAVA_BIN=/path/to/jdk-26/bin/java /path/to/run-test-server --paper 26.2 --plugin build/libs/<jar>.jar --foreground
 ```
 
 ## Installation

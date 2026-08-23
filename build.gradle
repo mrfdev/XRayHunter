@@ -16,7 +16,7 @@ def targetCoreProtectVersion = '24.0-dev1'
 def fallbackCoreProtectVersion = '23.4'
 def localCompileSupportRoot = file('.gradle/compile-support')
 def localCoreProtectJar = new File(localCompileSupportRoot, 'CoreProtect-24.0-dev1.jar')
-def centralizedPaperTestServerRoot = file('/Users/floris/Projects/Codex/servers')
+def centralizedPaperTestServerRoot = file(System.getenv('CODEX_SHARED_SERVERS_ROOT') ?: '../servers')
 // Prefer an ignored local compile-cache copy first because some Gradle/sandbox combinations cannot
 // inspect the centralized cache path directly during dependency resolution.
 // This project must not depend on a repo-local /servers/ folder.
